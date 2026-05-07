@@ -3,5 +3,6 @@
   "/dashboard/daily/page": "app/dashboard/daily/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/dashboard/planned/page": "app/dashboard/planned/page.js",
+  "/dashboard/statistics/page": "app/dashboard/statistics/page.js",
   "/page": "app/page.js"
 }
