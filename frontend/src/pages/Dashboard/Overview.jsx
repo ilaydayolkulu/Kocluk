@@ -1,0 +1,135 @@
+import React from "react";
+import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+
+// Örnek Grafik Verisi
+const chartData = [
+  { day: "Pzt", current: 30, planned: 40 },
+  { day: "Sal", current: 45, planned: 50 },
+  { day: "Çar", current: 40, planned: 55 },
+  { day: "Per", current: 60, planned: 70 },
+  { day: "Cum", current: 80, planned: 85 },
+  { day: "Cts", current: 90, planned: 95 },
+  { day: "Paz", current: 100, planned: 100 },
+];
+
+// Örnek Görev Verisi
+const tasks = [
+  { id: 1, title: "Matematik Sınav Hazırlığı", status: "Tamamlandı", checked: true },
+  { id: 2, title: "Tarih Projesi Araştırması", status: "Bekliyor", checked: false },
+  { id: 3, title: "Fizik Ödevini Gönder", status: "Tamamlandı", checked: true },
+  { id: 4, title: "İngilizce Kelime Çalışması", status: "Bekliyor", checked: false },
+];
+
+export default function StudentDashboard() {
+  return (
+    <>
+      {/* Karşılama */}
+      <div className="text-center md:text-left space-y-2 py-2">
+        <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Hoş geldin Ahmet!</h1>
+        <p className="text-slate-500 italic text-sm md:text-base">Bugün yapacağın küçük adımlar, yarınki büyük başarıların temelidir.</p>
+      </div>
+
+      {/* Orta İki Kolon: Görevler ve Grafik */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Görevler Kartı */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+          <h2 className="text-lg font-bold text-slate-800 mb-6">Bugünkü Görevlerim</h2>
+          <div className="space-y-4">
+            {tasks.map((task) => (
+              <div key={task.id} className="flex items-center justify-between group">
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${task.checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
+                    {task.checked && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>}
+                  </div>
+                  <span className={`text-sm md:text-base font-medium ${task.checked ? 'text-slate-700' : 'text-slate-500'}`}>{task.title}</span>
+                </div>
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${task.checked ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  {task.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* İlerleme Grafiği Kartı */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+          <h2 className="text-lg font-bold text-slate-800 mb-2">Haftalık İlerleme</h2>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-4 h-1 bg-blue-500 rounded-full"></div>
+            <span className="text-xs text-slate-500">Tamamlanması gereken ilerlemeyi planlar</span>
+          </div>
+          <div className="flex-1 min-h-[200px] -ml-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ color: '#1e293b', fontWeight: 600 }}
+                />
+                <Line type="monotone" dataKey="current" stroke="#3b82f6" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="planned" stroke="#93c5fd" strokeWidth={3} dot={false} strokeOpacity={0.5} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Son Deneme Sınavı Sonuçları */}
+      <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
+        <h2 className="text-lg font-bold text-slate-800 mb-6">Son Deneme Sınavı Sonuçları</h2>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          
+          {/* İstatistikler Grid */}
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 w-full md:w-2/3">
+            <div>
+              <p className="text-sm text-slate-500 mb-1">Türkçe:</p>
+              <p className="text-3xl font-bold text-slate-800">35/40</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 mb-1">Matematik:</p>
+              <p className="text-3xl font-bold text-slate-800">32/40</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 mb-1">Fen Bilimleri:</p>
+              <p className="text-3xl font-bold text-slate-800">18/20</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 mb-1">Sosyal Bilimler:</p>
+              <p className="text-3xl font-bold text-slate-800">19/20</p>
+            </div>
+          </div>
+
+          {/* Dairesel Progress */}
+          <div className="flex flex-col items-center justify-center shrink-0 mt-4 md:mt-0">
+            <div className="relative w-32 h-32">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path
+                  className="text-blue-100"
+                  strokeWidth="4"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="text-blue-500"
+                  strokeDasharray="86, 100"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-3xl font-bold text-slate-800">86%</span>
+              </div>
+            </div>
+            <p className="text-sm text-slate-500 mt-3 font-medium">Başarı Yüzdesi</p>
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
+}
