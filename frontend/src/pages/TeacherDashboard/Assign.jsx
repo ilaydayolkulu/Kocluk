@@ -1,6 +1,22 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 export default function AssignTasksPage() {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/students")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setStudents(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Öğrenciler yüklenemedi", err);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 min-h-[500px]">
       <h1 className="text-2xl font-bold text-slate-800 mb-6">Öğrenciye Görev Ver</h1>
@@ -11,9 +27,13 @@ export default function AssignTasksPage() {
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">Öğrenci Seçin</label>
           <select className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500">
-            <option>Ahmet Yılmaz</option>
-            <option>Zeynep Kaya</option>
-            <option>Caner Çelik</option>
+            {loading ? (
+              <option>Yükleniyor...</option>
+            ) : (
+              students.map(student => (
+                <option key={student.id} value={student.id}>{student.name}</option>
+              ))
+            )}
           </select>
         </div>
 

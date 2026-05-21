@@ -1,26 +1,57 @@
-import React from "react";
-import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis } from "recharts";
-
-// Örnek Grafik Verisi
-const chartData = [
-  { day: "Pzt", current: 30, planned: 40 },
-  { day: "Sal", current: 45, planned: 50 },
-  { day: "Çar", current: 40, planned: 55 },
-  { day: "Per", current: 60, planned: 70 },
-  { day: "Cum", current: 80, planned: 85 },
-  { day: "Cts", current: 90, planned: 95 },
-  { day: "Paz", current: 100, planned: 100 },
-];
-
-// Örnek Görev Verisi
-const tasks = [
-  { id: 1, title: "Matematik Sınav Hazırlığı", status: "Tamamlandı", checked: true },
-  { id: 2, title: "Tarih Projesi Araştırması", status: "Bekliyor", checked: false },
-  { id: 3, title: "Fizik Ödevini Gönder", status: "Tamamlandı", checked: true },
-  { id: 4, title: "İngilizce Kelime Çalışması", status: "Bekliyor", checked: false },
-];
+import React, { useState, useEffect } from "react";
+import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
 
 export default function StudentDashboard() {
+  const [tasks, setTasks] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [latestExam, setLatestExam] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Tüm verileri paralel çek
+    const studentId = 4;
+    Promise.all([
+      fetch(`http://localhost:5000/api/assignments/student/${studentId}`).then(res => res.json()),
+      fetch(`http://localhost:5000/api/progress/student/${studentId}`).then(res => res.json()),
+      fetch(`http://localhost:5000/api/exams/student/${studentId}`).then(res => res.json())
+    ])
+    .then(([tasksData, progressData, examsData]) => {
+      if (Array.isArray(tasksData)) {
+        setTasks(tasksData.map(task => ({
+          id: task.id,
+          title: task.title,
+          status: task.status === 'COMPLETED' ? "Tamamlandı" : (task.status === 'LATE' ? "Gecikti" : "Bekliyor"),
+          checked: task.status === 'COMPLETED'
+        })));
+      }
+      
+      if (Array.isArray(progressData)) {
+        setChartData(progressData);
+      }
+      
+      if (Array.isArray(examsData)) {
+        const tytExams = examsData.filter(e => e.examType === 'TYT');
+        if (tytExams.length > 0) {
+          setLatestExam(tytExams[tytExams.length - 1]);
+        }
+      }
+      setLoading(false);
+    })
+    .catch(err => {
+      console.error("Veriler çekilemedi:", err);
+      setLoading(false);
+    });
+  }, []);
+
+  const totalQuestions = 120;
+  const tytTurkish = latestExam?.tytTurkish || 0;
+  const tytMath = latestExam?.tytMath || 0;
+  const tytScience = latestExam?.tytScience || 0;
+  const tytSocial = latestExam?.tytSocial || 0;
+  
+  const totalNet = tytTurkish + tytMath + tytScience + tytSocial;
+  const percentage = Math.round((totalNet / totalQuestions) * 100) || 0;
+
   return (
     <>
       {/* Karşılama */}
@@ -36,19 +67,25 @@ export default function StudentDashboard() {
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
           <h2 className="text-lg font-bold text-slate-800 mb-6">Bugünkü Görevlerim</h2>
           <div className="space-y-4">
-            {tasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between group">
-                <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${task.checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
-                    {task.checked && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>}
+            {loading ? (
+              <p className="text-slate-500 text-sm">Ödevler yükleniyor...</p>
+            ) : tasks.length === 0 ? (
+              <p className="text-slate-500 text-sm">Bugün için planlanmış bir ödevin bulunmuyor.</p>
+            ) : (
+              tasks.map((task) => (
+                <div key={task.id} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${task.checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
+                      {task.checked && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>}
+                    </div>
+                    <span className={`text-sm md:text-base font-medium ${task.checked ? 'text-slate-700' : 'text-slate-500'}`}>{task.title}</span>
                   </div>
-                  <span className={`text-sm md:text-base font-medium ${task.checked ? 'text-slate-700' : 'text-slate-500'}`}>{task.title}</span>
+                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${task.checked ? 'bg-blue-500 text-white' : (task.status === 'Gecikti' ? 'bg-red-100 text-red-500' : 'bg-slate-100 text-slate-500')}`}>
+                    {task.status}
+                  </span>
                 </div>
-                <span className={`text-xs px-3 py-1 rounded-full font-medium ${task.checked ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                  {task.status}
-                </span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -84,19 +121,19 @@ export default function StudentDashboard() {
           <div className="grid grid-cols-2 gap-x-8 gap-y-6 w-full md:w-2/3">
             <div>
               <p className="text-sm text-slate-500 mb-1">Türkçe:</p>
-              <p className="text-3xl font-bold text-slate-800">35/40</p>
+              <p className="text-3xl font-bold text-slate-800">{latestExam ? `${tytTurkish}/40` : '-'}</p>
             </div>
             <div>
               <p className="text-sm text-slate-500 mb-1">Matematik:</p>
-              <p className="text-3xl font-bold text-slate-800">32/40</p>
+              <p className="text-3xl font-bold text-slate-800">{latestExam ? `${tytMath}/40` : '-'}</p>
             </div>
             <div>
               <p className="text-sm text-slate-500 mb-1">Fen Bilimleri:</p>
-              <p className="text-3xl font-bold text-slate-800">18/20</p>
+              <p className="text-3xl font-bold text-slate-800">{latestExam ? `${tytScience}/20` : '-'}</p>
             </div>
             <div>
               <p className="text-sm text-slate-500 mb-1">Sosyal Bilimler:</p>
-              <p className="text-3xl font-bold text-slate-800">19/20</p>
+              <p className="text-3xl font-bold text-slate-800">{latestExam ? `${tytSocial}/20` : '-'}</p>
             </div>
           </div>
 
@@ -113,7 +150,7 @@ export default function StudentDashboard() {
                 />
                 <path
                   className="text-blue-500"
-                  strokeDasharray="86, 100"
+                  strokeDasharray={`${percentage}, 100`}
                   strokeWidth="4"
                   strokeLinecap="round"
                   stroke="currentColor"
@@ -122,7 +159,7 @@ export default function StudentDashboard() {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-3xl font-bold text-slate-800">86%</span>
+                <span className="text-3xl font-bold text-slate-800">{percentage}%</span>
               </div>
             </div>
             <p className="text-sm text-slate-500 mt-3 font-medium">Başarı Yüzdesi</p>

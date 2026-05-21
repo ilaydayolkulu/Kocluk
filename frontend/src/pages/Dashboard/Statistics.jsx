@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend 
@@ -6,32 +6,9 @@ import {
 
 // Renk paleti
 const COLORS = {
-  dogru: "#22c55e", // Yeşil
-  yanlis: "#ef4444", // Kırmızı
-  bos: "#cbd5e1"     // Gri/Slate
-};
-
-// Çizgi Grafik (Trend) için Örnek Veriler
-const trendData = {
-  all: [
-    { date: "15 Eyl", tyt: 55, ayt: 35 },
-    { date: "10 Eki", tyt: 62, ayt: 42 },
-    { date: "05 Kas", tyt: 68, ayt: 48 },
-    { date: "25 Kas", tyt: 75, ayt: 55 },
-    { date: "15 Ara", tyt: 82, ayt: 58 },
-    { date: "05 Oca", tyt: 90, ayt: 62 },
-  ],
-  month: [
-    { date: "1 Oca", tyt: 82, ayt: 58 },
-    { date: "10 Oca", tyt: 85, ayt: 60 },
-    { date: "20 Oca", tyt: 88, ayt: 61 },
-    { date: "30 Oca", tyt: 90, ayt: 62 },
-  ],
-  week: [
-    { date: "Pzt", tyt: 88, ayt: 60 },
-    { date: "Çar", tyt: 89, ayt: 61 },
-    { date: "Cum", tyt: 90, ayt: 62 },
-  ]
+  dogru: "#22c55e",
+  yanlis: "#ef4444",
+  bos: "#cbd5e1"
 };
 
 // Tekrar kullanılabilir Deneme Sınavı Kartı Bileşeni
@@ -122,37 +99,87 @@ function ExamCard({ title, totalQuestions, data, breakdown }) {
 
 export default function StatisticsPage() {
   const [timeFilter, setTimeFilter] = useState("all");
-  const activeTrendData = trendData[timeFilter];
+  const [examTab, setExamTab] = useState("TYT");
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // TYT Örnek Verileri
-  const tytData = [ { name: "Doğru", value: 93 }, { name: "Yanlış", value: 10 }, { name: "Boş", value: 17 } ];
-  const tytBreakdown = [
-    { subject: "Türkçe", total: 40, d: 32, y: 4 },
-    { subject: "Matematik", total: 40, d: 28, y: 2 },
-    { subject: "Fen Bilimleri", total: 20, d: 15, y: 3 },
-    { subject: "Sosyal Bilgiler", total: 20, d: 18, y: 1 }
-  ];
+  useEffect(() => {
+    // Statik öğrenci ID = 4 (Örnek Öğrenci)
+    fetch("http://localhost:5000/api/exams/student/4")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setExams(data);
+        } else {
+          setExams([]);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("API hatası:", err);
+        setError("Sınav verileri yüklenemedi.");
+        setLoading(false);
+      });
+  }, []);
 
-  // AYT Sayısal Örnek Verileri
-  const aytSayData = [ { name: "Doğru", value: 62 }, { name: "Yanlış", value: 8 }, { name: "Boş", value: 10 } ];
-  const aytSayBreakdown = [
-    { subject: "Matematik", total: 40, d: 30, y: 3 },
-    { subject: "Fen Bilimleri", total: 40, d: 32, y: 5 }
-  ];
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500 font-medium">Veriler yükleniyor...</div>;
+  }
 
-  // AYT Eşit Ağırlık Örnek Verileri
-  const aytEaData = [ { name: "Doğru", value: 55 }, { name: "Yanlış", value: 11 }, { name: "Boş", value: 14 } ];
-  const aytEaBreakdown = [
-    { subject: "Matematik", total: 40, d: 25, y: 5 },
-    { subject: "Edebiyat-Sosyal 1", total: 40, d: 30, y: 6 }
-  ];
+  if (error) {
+    return <div className="p-8 text-center text-red-500 font-medium">{error}</div>;
+  }
 
-  // AYT Sözel Örnek Verileri
-  const aytSozData = [ { name: "Doğru", value: 67 }, { name: "Yanlış", value: 9 }, { name: "Boş", value: 4 } ];
-  const aytSozBreakdown = [
-    { subject: "Edebiyat-Sosyal 1", total: 40, d: 35, y: 3 },
-    { subject: "Sosyal 2", total: 40, d: 32, y: 6 }
-  ];
+  if (exams.length === 0) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-xl font-bold text-slate-800">Deneme Analizleri</h2>
+        <p className="text-slate-500 mt-2">Henüz girilmiş bir deneme sınavınız bulunmuyor.</p>
+      </div>
+    );
+  }
+
+  // Dinamik Trend Datası Oluşturma
+  const parsedTrendData = exams.map(exam => {
+    const d = new Date(exam.createdAt);
+    const dateStr = d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+    return { date: dateStr, examType: exam.examType, net: exam.totalNet };
+  });
+  const activeTrendData = parsedTrendData.filter(d => d.examType === examTab);
+
+  // TYT Örnek Hesaplama (Gerçekte son TYT sınavından alınabilir, basitleştirilmiş hali)
+  const lastTyt = exams.filter(e => e.examType === 'TYT').pop();
+  const tytData = lastTyt ? [
+    { name: "Doğru", value: Math.floor(lastTyt.totalNet) }, 
+    { name: "Yanlış", value: Math.floor((120 - lastTyt.totalNet) * 0.2) }, 
+    { name: "Boş", value: 120 - Math.floor(lastTyt.totalNet) - Math.floor((120 - lastTyt.totalNet) * 0.2) }
+  ] : [ { name: "Doğru", value: 0 }, { name: "Yanlış", value: 0 }, { name: "Boş", value: 120 } ];
+  
+  const tytBreakdown = lastTyt ? [
+    { subject: "Türkçe", total: 40, d: lastTyt.tytTurkish, y: 0 },
+    { subject: "Matematik", total: 40, d: lastTyt.tytMath, y: 0 },
+    { subject: "Fen Bilimleri", total: 20, d: lastTyt.tytScience, y: 0 },
+    { subject: "Sosyal Bilgiler", total: 20, d: lastTyt.tytSocial, y: 0 }
+  ] : [];
+
+  // AYT Hesaplama
+  const lastAyt = exams.filter(e => e.examType === 'AYT').pop();
+  const aytSayData = lastAyt ? [
+    { name: "Doğru", value: Math.floor(lastAyt.totalNet) },
+    { name: "Yanlış", value: 0 },
+    { name: "Boş", value: 80 - Math.floor(lastAyt.totalNet) }
+  ] : [ { name: "Doğru", value: 0 }, { name: "Yanlış", value: 0 }, { name: "Boş", value: 80 } ];
+  
+  const aytSayBreakdown = lastAyt ? [
+    { subject: "Matematik", total: 40, d: lastAyt.aytMath, y: 0 },
+    { subject: "Fen Bilimleri", total: 40, d: lastAyt.aytScience, y: 0 }
+  ] : [];
+
+  const aytEaData = [ { name: "Doğru", value: 0 }, { name: "Yanlış", value: 0 }, { name: "Boş", value: 80 } ];
+  const aytEaBreakdown = [];
+  const aytSozData = [ { name: "Doğru", value: 0 }, { name: "Yanlış", value: 0 }, { name: "Boş", value: 80 } ];
+  const aytSozBreakdown = [];
 
   return (
     <div className="min-h-full pb-12">
@@ -177,26 +204,42 @@ export default function StatisticsPage() {
             <p className="text-sm text-slate-500 mt-1">Girdiğiniz denemelerin tarihsel olarak net (doğru-yanlış) gelişimi.</p>
           </div>
           
-          {/* Zaman Filtre Butonları */}
-          <div className="flex bg-slate-100 p-1.5 rounded-xl shrink-0">
-            <button 
-              onClick={() => setTimeFilter("all")} 
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Tüm Dönem
-            </button>
-            <button 
-              onClick={() => setTimeFilter("month")} 
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Aylık
-            </button>
-            <button 
-              onClick={() => setTimeFilter("week")} 
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Haftalık
-            </button>
+          {/* Filtre ve Sekme Butonları */}
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex bg-slate-100 p-1.5 rounded-xl shrink-0">
+              <button 
+                onClick={() => setExamTab("TYT")} 
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${examTab === 'TYT' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                TYT
+              </button>
+              <button 
+                onClick={() => setExamTab("AYT")} 
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${examTab === 'AYT' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                AYT
+              </button>
+            </div>
+            <div className="flex bg-slate-100 p-1.5 rounded-xl shrink-0">
+              <button 
+                onClick={() => setTimeFilter("all")} 
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Tüm Dönem
+              </button>
+              <button 
+                onClick={() => setTimeFilter("month")} 
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Aylık
+              </button>
+              <button 
+                onClick={() => setTimeFilter("week")} 
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Haftalık
+              </button>
+            </div>
           </div>
         </div>
 
@@ -225,21 +268,12 @@ export default function StatisticsPage() {
               <Legend verticalAlign="top" height={40} iconType="circle" wrapperStyle={{ fontSize: '14px', fontWeight: 500 }} />
               
               <Line 
-                name="TYT Neti" 
+                name={`${examTab} Neti`} 
                 type="monotone" 
-                dataKey="tyt" 
-                stroke="#3b82f6" 
+                dataKey="net" 
+                stroke={examTab === "TYT" ? "#3b82f6" : "#8b5cf6"} 
                 strokeWidth={4} 
-                dot={{ r: 5, strokeWidth: 2, fill: "#fff", stroke: "#3b82f6" }} 
-                activeDot={{ r: 7 }} 
-              />
-              <Line 
-                name="AYT Neti" 
-                type="monotone" 
-                dataKey="ayt" 
-                stroke="#8b5cf6" 
-                strokeWidth={4} 
-                dot={{ r: 5, strokeWidth: 2, fill: "#fff", stroke: "#8b5cf6" }} 
+                dot={{ r: 5, strokeWidth: 2, fill: "#fff", stroke: examTab === "TYT" ? "#3b82f6" : "#8b5cf6" }} 
                 activeDot={{ r: 7 }} 
               />
             </LineChart>
