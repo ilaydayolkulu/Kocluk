@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
@@ -8,18 +9,20 @@ async function main() {
   await prisma.chatSession.deleteMany({});
   await prisma.user.deleteMany({});
 
+  const hashedPassword = await bcrypt.hash('123456', 10);
+
   const admin = await prisma.user.create({
-    data: { email: 'admin@egitimkocu.com', password: 'pwd', name: 'Sistem Yöneticisi', role: 'ADMIN' },
+    data: { email: 'admin@egitimkocu.com', password: hashedPassword, name: 'Sistem Yöneticisi', role: 'ADMIN' },
   });
 
   const teacher1 = await prisma.user.create({
-    data: { email: 'teacher1@egitimkocu.com', password: 'pwd', name: 'Ahmet Hoca', role: 'TEACHER' },
+    data: { email: 'teacher1@egitimkocu.com', password: hashedPassword, name: 'Ahmet Hoca', role: 'TEACHER' },
   });
 
   const students = [];
   for (let i = 1; i <= 3; i++) {
     const student = await prisma.user.create({
-      data: { email: `student${i}@egitimkocu.com`, password: 'pwd', name: `Öğrenci ${i}`, role: 'STUDENT' },
+      data: { email: `student${i}@egitimkocu.com`, password: hashedPassword, name: `Öğrenci ${i}`, role: 'STUDENT' },
     });
     students.push(student);
   }

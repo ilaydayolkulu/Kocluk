@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { authenticateToken, checkRole, JWT_SECRET } = require('./middleware/authMiddleware');
 require('dotenv').config();
 
 const app = express();
@@ -10,9 +13,38 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// 1. GET /api/students
+// 1. POST /api/auth/login
+// User authentication endpoint
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Find user
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: 'Hatalı e-posta veya şifre' });
+    }
+
+    // Compare password
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Hatalı e-posta veya şifre' });
+    }
+
+    // Generate token
+    const payload = { id: user.id, name: user.name, email: user.email, role: user.role };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
+
+    res.json({ message: 'Giriş başarılı', token, user: payload });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Giriş sırasında sunucu hatası oluştu.' });
+  }
+});
+
+// 2. GET /api/students
 // Fetch all students to populate dropdowns in the frontend
-app.get('/api/students', async (req, res) => {
+app.get('/api/students', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
   try {
     const students = await prisma.user.findMany({
       where: { role: 'STUDENT' },
@@ -57,9 +89,9 @@ app.get('/api/assignments/student/:studentId', async (req, res) => {
   }
 });
 
-// 4. GET /api/teacher/stats
+// 5. GET /api/teacher/stats
 // Teacher dashboard stats
-app.get('/api/teacher/stats', async (req, res) => {
+app.get('/api/teacher/stats', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
   try {
     const activeStudents = await prisma.user.count({ where: { role: 'STUDENT' } });
     const completedTasks = await prisma.assignment.count({ where: { status: 'COMPLETED' } });

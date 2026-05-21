@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
 import Home from './pages/Home';
+import Login from './pages/Login';
 
 // Dashboard Layout & Pages
 import DashboardLayout from './layouts/DashboardLayout';
@@ -21,9 +23,17 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
 
         {/* Student Dashboard */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<DashboardOverview />} />
           <Route path="daily" element={<DashboardDaily />} />
           <Route path="planned" element={<DashboardPlanned />} />
@@ -31,7 +41,14 @@ function App() {
         </Route>
 
         {/* Teacher Dashboard */}
-        <Route path="/teacher-dashboard" element={<TeacherDashboardLayout />}>
+        <Route 
+          path="/teacher-dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+              <TeacherDashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<TeacherDashboardOverview />} />
           <Route path="analytics" element={<TeacherDashboardAnalytics />} />
           <Route path="assign" element={<TeacherDashboardAssign />} />
