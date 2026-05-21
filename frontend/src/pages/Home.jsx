@@ -1,7 +1,48 @@
 import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [role, setRole] = useState("student"); // 'student' or 'teacher'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Giriş başarısız.');
+      }
+
+      // Token ve User bilgisini kaydet
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Rol bazlı yönlendirme
+      if (data.user.role === 'TEACHER' || data.user.role === 'ADMIN') {
+        navigate('/teacher-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
@@ -54,12 +95,21 @@ export default function LoginPage() {
               </button>
             </div>
 
+            {error && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-medium text-center">
+                {error}
+              </div>
+            )}
+
             {/* Form */}
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-5" onSubmit={handleLogin}>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">E-posta</label>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                   placeholder={role === "student" ? "ogrenci@example.com" : "ogretmen@example.com"}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-[#2563EB] transition-colors"
                 />
@@ -69,6 +119,9 @@ export default function LoginPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-2">Şifre</label>
                 <input
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                   placeholder="••••••••"
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-[#2563EB] transition-colors"
                 />
@@ -76,12 +129,15 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full bg-[#2563EB] text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors mt-2 shadow-sm"
+                disabled={loading}
+                className="w-full bg-[#2563EB] text-white font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors mt-2 shadow-sm disabled:opacity-70"
               >
-                Giriş Yap
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
+                {loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
+                {!loading && (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                )}
               </button>
             </form>
 

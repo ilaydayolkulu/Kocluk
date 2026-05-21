@@ -3,7 +3,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
 import Home from './pages/Home';
-import Login from './pages/Login';
 
 // Dashboard Layout & Pages
 import DashboardLayout from './layouts/DashboardLayout';
@@ -23,7 +22,6 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
 
         {/* Student Dashboard */}
         <Route 

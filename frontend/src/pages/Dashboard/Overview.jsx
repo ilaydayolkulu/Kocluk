@@ -7,22 +7,66 @@ export default function StudentDashboard() {
   const [latestExam, setLatestExam] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Tüm verileri paralel çek
-    const studentId = 4;
+  const fetchDashboardData = () => {
+    const userStr = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    
+    if (!userStr || !token) {
+      setLoading(false);
+      return;
+    }
+    
+    const user = JSON.parse(userStr);
+    const studentId = user.id;
+
+    const fetchOptions = {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    };
+
+    setLoading(true);
     Promise.all([
-      fetch(`http://localhost:5000/api/assignments/student/${studentId}`).then(res => res.json()),
-      fetch(`http://localhost:5000/api/progress/student/${studentId}`).then(res => res.json()),
-      fetch(`http://localhost:5000/api/exams/student/${studentId}`).then(res => res.json())
+      fetch(`http://localhost:5000/api/assignments/student/${studentId}`, fetchOptions).then(res => res.json()),
+      fetch(`http://localhost:5000/api/progress/student/${studentId}`, fetchOptions).then(res => res.json()),
+      fetch(`http://localhost:5000/api/exams/student/${studentId}`, fetchOptions).then(res => res.json())
     ])
     .then(([tasksData, progressData, examsData]) => {
       if (Array.isArray(tasksData)) {
-        setTasks(tasksData.map(task => ({
-          id: task.id,
-          title: task.title,
-          status: task.status === 'COMPLETED' ? "Tamamlandı" : (task.status === 'LATE' ? "Gecikti" : "Bekliyor"),
-          checked: task.status === 'COMPLETED'
-        })));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const processedTasks = tasksData.map(task => {
+          let displayStatus = "Bekliyor";
+          
+          if (task.status === 'COMPLETED') {
+            displayStatus = "Tamamlandı";
+          } else if (task.status === 'PENDING' && task.dueDate) {
+            const taskDate = new Date(task.dueDate);
+            taskDate.setHours(0, 0, 0, 0);
+            
+            if (taskDate < today) {
+              displayStatus = "Gecikti";
+            }
+          }
+
+          return {
+            id: task.id,
+            title: task.title,
+            status: displayStatus,
+            checked: task.status === 'COMPLETED',
+            dueDate: task.dueDate
+          };
+        });
+        
+        const upcomingTasks = processedTasks
+          .filter(task => task.status !== "Gecikti" && !!task.dueDate)
+          .sort((a, b) => {
+            return new Date(a.dueDate) - new Date(b.dueDate);
+          })
+          .slice(0, 5);
+
+        setTasks(upcomingTasks);
       }
       
       if (Array.isArray(progressData)) {
@@ -33,6 +77,8 @@ export default function StudentDashboard() {
         const tytExams = examsData.filter(e => e.examType === 'TYT');
         if (tytExams.length > 0) {
           setLatestExam(tytExams[tytExams.length - 1]);
+        } else {
+          setLatestExam(null);
         }
       }
       setLoading(false);
@@ -41,7 +87,42 @@ export default function StudentDashboard() {
       console.error("Veriler çekilemedi:", err);
       setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
+
+  const handleToggleTask = async (taskId, currentChecked) => {
+    const newStatus = currentChecked ? 'PENDING' : 'COMPLETED';
+    
+    // 1. Optimistic Update (Ekranı anında güncelle)
+    setTasks(tasks.map(task => {
+      if (task.id === taskId) {
+        return { 
+          ...task, 
+          checked: !currentChecked, 
+          status: !currentChecked ? 'Tamamlandı' : 'Bekliyor' 
+        };
+      }
+      return task;
+    }));
+
+    // 2. Backend'e gönder
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`http://localhost:5000/api/assignments/${taskId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+    } catch (err) {
+      console.error('Görev güncellenemedi:', err);
+    }
+  };
 
   const totalQuestions = 120;
   const tytTurkish = latestExam?.tytTurkish || 0;
@@ -52,11 +133,14 @@ export default function StudentDashboard() {
   const totalNet = tytTurkish + tytMath + tytScience + tytSocial;
   const percentage = Math.round((totalNet / totalQuestions) * 100) || 0;
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const firstName = user.name ? user.name.split(' ')[0] : 'Öğrenci';
+
   return (
     <>
       {/* Karşılama */}
       <div className="text-center md:text-left space-y-2 py-2">
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Hoş geldin Ahmet!</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Hoş geldin {firstName}!</h1>
         <p className="text-slate-500 italic text-sm md:text-base">Bugün yapacağın küçük adımlar, yarınki büyük başarıların temelidir.</p>
       </div>
 
@@ -65,26 +149,54 @@ export default function StudentDashboard() {
         
         {/* Görevler Kartı */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-6">Bugünkü Görevlerim</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-6">Yaklaşan Görevlerim</h2>
           <div className="space-y-4">
             {loading ? (
               <p className="text-slate-500 text-sm">Ödevler yükleniyor...</p>
             ) : tasks.length === 0 ? (
-              <p className="text-slate-500 text-sm">Bugün için planlanmış bir ödevin bulunmuyor.</p>
+              <p className="text-slate-500 text-sm">Yaklaşan bir görevin bulunmuyor.</p>
             ) : (
-              tasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between group">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${task.checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
-                      {task.checked && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>}
+              tasks.map((task) => {
+                let dateDisplay = null;
+                if (task.dueDate) {
+                  const taskDate = new Date(task.dueDate);
+                  taskDate.setHours(0, 0, 0, 0);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  
+                  if (taskDate.getTime() === today.getTime()) {
+                    dateDisplay = "Bugün";
+                  } else {
+                    dateDisplay = taskDate.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                  }
+                }
+
+                return (
+                  <div key={task.id} className="flex flex-col gap-1.5 group pb-1">
+                    <div className="flex items-center justify-between">
+                      <div 
+                        className="flex items-center gap-3 cursor-pointer select-none flex-1"
+                        onClick={() => handleToggleTask(task.id, task.checked)}
+                      >
+                        <div className={`w-5 h-5 shrink-0 rounded flex items-center justify-center border transition-colors ${task.checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
+                          {task.checked && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>}
+                        </div>
+                        <span className={`text-sm md:text-base font-medium transition-colors ${task.checked ? 'text-slate-400 line-through' : 'text-slate-700 group-hover:text-blue-600'}`}>{task.title}</span>
+                      </div>
+                      <span className={`text-xs px-3 py-1 rounded-full font-medium shrink-0 ml-3 ${task.checked ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                        {task.status}
+                      </span>
                     </div>
-                    <span className={`text-sm md:text-base font-medium ${task.checked ? 'text-slate-700' : 'text-slate-500'}`}>{task.title}</span>
+                    {/* Alt Tarih Satırı */}
+                    {dateDisplay && !task.checked && (
+                      <div className="pl-8 flex items-center gap-1.5 text-xs text-slate-400">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span>Son Gün: {dateDisplay}</span>
+                      </div>
+                    )}
                   </div>
-                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${task.checked ? 'bg-blue-500 text-white' : (task.status === 'Gecikti' ? 'bg-red-100 text-red-500' : 'bg-slate-100 text-slate-500')}`}>
-                    {task.status}
-                  </span>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -114,7 +226,9 @@ export default function StudentDashboard() {
 
       {/* Son Deneme Sınavı Sonuçları */}
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
-        <h2 className="text-lg font-bold text-slate-800 mb-6">Son Deneme Sınavı Sonuçları</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-slate-800">Son Deneme Sınavı Sonuçları</h2>
+        </div>
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           
           {/* İstatistikler Grid */}

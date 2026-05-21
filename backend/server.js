@@ -14,24 +14,20 @@ app.use(cors());
 app.use(express.json());
 
 // 1. POST /api/auth/login
-// User authentication endpoint
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    // Find user
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(401).json({ error: 'Hatalı e-posta veya şifre' });
     }
 
-    // Compare password
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(401).json({ error: 'Hatalı e-posta veya şifre' });
     }
 
-    // Generate token
     const payload = { id: user.id, name: user.name, email: user.email, role: user.role };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
 
@@ -43,7 +39,6 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // 2. GET /api/students
-// Fetch all students to populate dropdowns in the frontend
 app.get('/api/students', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
   try {
     const students = await prisma.user.findMany({
@@ -57,11 +52,15 @@ app.get('/api/students', authenticateToken, checkRole(['TEACHER', 'ADMIN']), asy
   }
 });
 
-// 2. GET /api/exams/student/:studentId
-// Fetch practice exams for a specific student, chronologically ordered
-app.get('/api/exams/student/:studentId', async (req, res) => {
+// 3. GET /api/exams/student/:studentId
+app.get('/api/exams/student/:studentId', authenticateToken, async (req, res) => {
   try {
     const { studentId } = req.params;
+
+    if (req.user.role === 'STUDENT' && req.user.id !== parseInt(studentId)) {
+      return res.status(403).json({ error: 'Sadece kendi sınavlarınızı görebilirsiniz.' });
+    }
+
     const exams = await prisma.practiceExam.findMany({
       where: { studentId: parseInt(studentId) },
       orderBy: { createdAt: 'asc' }
@@ -73,11 +72,15 @@ app.get('/api/exams/student/:studentId', async (req, res) => {
   }
 });
 
-// 3. GET /api/assignments/student/:studentId
-// Fetch assignments for a specific student
-app.get('/api/assignments/student/:studentId', async (req, res) => {
+// 4. GET /api/assignments/student/:studentId
+app.get('/api/assignments/student/:studentId', authenticateToken, async (req, res) => {
   try {
     const { studentId } = req.params;
+
+    if (req.user.role === 'STUDENT' && req.user.id !== parseInt(studentId)) {
+      return res.status(403).json({ error: 'Sadece kendi ödevlerinizi görebilirsiniz.' });
+    }
+
     const assignments = await prisma.assignment.findMany({
       where: { studentId: parseInt(studentId) },
       orderBy: { dueDate: 'asc' }
@@ -90,7 +93,6 @@ app.get('/api/assignments/student/:studentId', async (req, res) => {
 });
 
 // 5. GET /api/teacher/stats
-// Teacher dashboard stats
 app.get('/api/teacher/stats', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
   try {
     const activeStudents = await prisma.user.count({ where: { role: 'STUDENT' } });
@@ -102,12 +104,15 @@ app.get('/api/teacher/stats', authenticateToken, checkRole(['TEACHER', 'ADMIN'])
   }
 });
 
-// 5. GET /api/progress/student/:studentId
-// Mock daily progress chart data based on studentId
-app.get('/api/progress/student/:studentId', async (req, res) => {
+// 6. GET /api/progress/student/:studentId
+app.get('/api/progress/student/:studentId', authenticateToken, async (req, res) => {
   try {
-    // Generate some dynamic looking data based on current assignments
     const { studentId } = req.params;
+
+    if (req.user.role === 'STUDENT' && req.user.id !== parseInt(studentId)) {
+      return res.status(403).json({ error: 'Sadece kendi gelişiminizi görebilirsiniz.' });
+    }
+
     const count = await prisma.assignment.count({ where: { studentId: parseInt(studentId) } });
     const base = count * 10;
     
@@ -123,6 +128,157 @@ app.get('/api/progress/student/:studentId', async (req, res) => {
     res.json(chartData);
   } catch (error) {
     res.status(500).json({ error: 'Progress error' });
+  }
+});
+
+// --- YENİ EKLENEN ROTALAR (AŞAMA 4: CRUD ENDPOINTS) ---
+
+// 6.5. GET /api/assignments/all (Tüm Ödevleri Çek - Öğretmen Paneli İçin)
+app.get('/api/assignments/all', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
+  try {
+    const assignments = await prisma.assignment.findMany({
+      orderBy: { dueDate: 'asc' },
+      include: {
+        student: { select: { name: true } }
+      }
+    });
+    res.json(assignments);
+  } catch (error) {
+    console.error('Error fetching all assignments:', error);
+    res.status(500).json({ error: 'Tüm ödevler getirilirken hata oluştu.' });
+  }
+});
+
+// 7. POST /api/assignments (Yeni Ödev Tanımlama)
+app.post('/api/assignments', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
+  try {
+    const { studentId, title, description, dueDate } = req.body;
+    
+    if (!studentId || !title || !description) {
+      return res.status(400).json({ error: 'Öğrenci, başlık ve içerik (description) zorunludur.' });
+    }
+
+    const assignment = await prisma.assignment.create({
+      data: {
+        title,
+        content: description,
+        status: 'PENDING',
+        dueDate: dueDate ? new Date(dueDate) : null,
+        teacherId: req.user.id,
+        studentId: parseInt(studentId)
+      }
+    });
+
+    res.json({ message: 'Ödev başarıyla eklendi', assignment });
+  } catch (error) {
+    console.error('Error creating assignment:', error);
+    res.status(500).json({ error: 'Ödev eklenirken bir hata oluştu.' });
+  }
+});
+
+// 8. PUT /api/assignments/:id/status (Ödev Durumunu Güncelleme)
+app.put('/api/assignments/:id/status', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (status !== 'COMPLETED' && status !== 'PENDING') {
+      return res.status(400).json({ error: 'Geçersiz ödev durumu.' });
+    }
+
+    const existing = await prisma.assignment.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ error: 'Ödev bulunamadı.' });
+
+    if (req.user.role === 'STUDENT' && existing.studentId !== req.user.id) {
+       return res.status(403).json({ error: 'Sadece kendi ödevinizin durumunu güncelleyebilirsiniz.' });
+    }
+
+    const updatedAssignment = await prisma.assignment.update({
+      where: { id: parseInt(id) },
+      data: { status }
+    });
+
+    res.json({ message: 'Ödev durumu güncellendi', updatedAssignment });
+  } catch (error) {
+    console.error('Error updating assignment status:', error);
+    res.status(500).json({ error: 'Ödev durumu güncellenirken hata oluştu.' });
+  }
+});
+
+// 8.1 PUT /api/assignments/:id (Ödev Düzenleme)
+app.put('/api/assignments/:id', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, dueDate } = req.body;
+    
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (description) updateData.content = description;
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+
+    const updatedAssignment = await prisma.assignment.update({
+      where: { id: parseInt(id) },
+      data: updateData
+    });
+
+    res.json({ message: 'Ödev güncellendi', updatedAssignment });
+  } catch (error) {
+    console.error('Error updating assignment:', error);
+    res.status(500).json({ error: 'Ödev güncellenirken hata oluştu.' });
+  }
+});
+
+// 8.2 DELETE /api/assignments/:id (Ödev Silme)
+app.delete('/api/assignments/:id', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.assignment.delete({
+      where: { id: parseInt(id) }
+    });
+    res.json({ message: 'Ödev başarıyla silindi' });
+  } catch (error) {
+    console.error('Error deleting assignment:', error);
+    res.status(500).json({ error: 'Ödev silinirken hata oluştu.' });
+  }
+});
+
+// 9. POST /api/exams (Yeni Deneme Neti Ekleme)
+app.post('/api/exams', authenticateToken, checkRole(['STUDENT']), async (req, res) => {
+  try {
+    const { examType, examName, tytTurkish, tytMath, tytSocial, tytScience, aytMath, aytScience, aytEdSos1, aytSocial2 } = req.body;
+
+    if (!examType || !examName) {
+      return res.status(400).json({ error: 'Sınav türü (TYT/AYT) ve Sınav Adı zorunludur.' });
+    }
+
+    let totalNet = 0;
+    if (examType === 'TYT') {
+      totalNet = (parseFloat(tytTurkish) || 0) + (parseFloat(tytMath) || 0) + (parseFloat(tytSocial) || 0) + (parseFloat(tytScience) || 0);
+    } else {
+      totalNet = (parseFloat(aytMath) || 0) + (parseFloat(aytScience) || 0) + (parseFloat(aytEdSos1) || 0) + (parseFloat(aytSocial2) || 0);
+    }
+
+    const exam = await prisma.practiceExam.create({
+      data: {
+        examName,
+        examType,
+        totalNet,
+        tytTurkish: parseFloat(tytTurkish) || 0,
+        tytMath: parseFloat(tytMath) || 0,
+        tytSocial: parseFloat(tytSocial) || 0,
+        tytScience: parseFloat(tytScience) || 0,
+        aytMath: parseFloat(aytMath) || 0,
+        aytScience: parseFloat(aytScience) || 0,
+        aytEdSos1: parseFloat(aytEdSos1) || 0,
+        aytSocial2: parseFloat(aytSocial2) || 0,
+        studentId: req.user.id
+      }
+    });
+
+    res.json({ message: 'Deneme sınavı başarıyla eklendi', exam });
+  } catch (error) {
+    console.error('Error adding exam:', error);
+    res.status(500).json({ error: 'Sınav verisi eklenirken hata oluştu.' });
   }
 });
 

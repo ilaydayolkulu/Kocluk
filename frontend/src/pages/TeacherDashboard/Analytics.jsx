@@ -107,7 +107,12 @@ export default function StudentAnalyticsPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/students")
+    const token = localStorage.getItem("token");
+    fetch("http://localhost:5000/api/students", {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -130,7 +135,12 @@ export default function StudentAnalyticsPage() {
     if (!selectedStudent) return;
     
     setLoading(true);
-    fetch(`http://localhost:5000/api/exams/student/${selectedStudent}`)
+    const token = localStorage.getItem("token");
+    fetch(`http://localhost:5000/api/exams/student/${selectedStudent}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
