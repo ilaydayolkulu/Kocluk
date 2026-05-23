@@ -55,7 +55,8 @@ export default function StudentDashboard() {
             title: task.title,
             status: displayStatus,
             checked: task.status === 'COMPLETED',
-            dueDate: task.dueDate
+            dueDate: task.dueDate,
+            fileUrl: task.fileUrl
           };
         });
         
@@ -183,9 +184,23 @@ export default function StudentDashboard() {
                         </div>
                         <span className={`text-sm md:text-base font-medium transition-colors ${task.checked ? 'text-slate-400 line-through' : 'text-slate-700 group-hover:text-blue-600'}`}>{task.title}</span>
                       </div>
-                      <span className={`text-xs px-3 py-1 rounded-full font-medium shrink-0 ml-3 ${task.checked ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
-                        {task.status}
-                      </span>
+                      <div className="flex items-center gap-3 shrink-0 ml-3">
+                        {task.fileUrl && (
+                          <a 
+                            href={`http://localhost:5000${task.fileUrl}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs px-3 py-1 rounded-full font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition flex items-center gap-1.5 border border-blue-200"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                            Eki İndir
+                          </a>
+                        )}
+                        <span className={`text-xs px-3 py-1 rounded-full font-medium ${task.checked ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                          {task.status}
+                        </span>
+                      </div>
                     </div>
                     {/* Alt Tarih Satırı */}
                     {dateDisplay && !task.checked && (

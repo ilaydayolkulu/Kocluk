@@ -3,6 +3,8 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
 const { authenticateToken, checkRole, JWT_SECRET } = require('./middleware/authMiddleware');
 require('dotenv').config();
 
@@ -12,6 +14,19 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Multer storage configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
 
 // 1. POST /api/auth/login
 app.post('/api/auth/login', async (req, res) => {
@@ -43,7 +58,7 @@ app.get('/api/students', authenticateToken, checkRole(['TEACHER', 'ADMIN']), asy
   try {
     const students = await prisma.user.findMany({
       where: { role: 'STUDENT' },
-      select: { id: true, name: true, email: true }
+      select: { id: true, name: true, email: true, department: true }
     });
     res.json(students);
   } catch (error) {
@@ -150,26 +165,47 @@ app.get('/api/assignments/all', authenticateToken, checkRole(['TEACHER', 'ADMIN'
 });
 
 // 7. POST /api/assignments (Yeni Ödev Tanımlama)
-app.post('/api/assignments', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
+app.post('/api/assignments', authenticateToken, checkRole(['TEACHER', 'ADMIN']), upload.single('file'), async (req, res) => {
   try {
-    const { studentId, title, description, dueDate } = req.body;
+    const { studentIds, title, description, dueDate } = req.body;
+    let fileUrl = null;
     
-    if (!studentId || !title || !description) {
-      return res.status(400).json({ error: 'Öğrenci, başlık ve içerik (description) zorunludur.' });
+    if (req.file) {
+      fileUrl = `/uploads/${req.file.filename}`;
     }
 
-    const assignment = await prisma.assignment.create({
-      data: {
-        title,
-        content: description,
-        status: 'PENDING',
-        dueDate: dueDate ? new Date(dueDate) : null,
-        teacherId: req.user.id,
-        studentId: parseInt(studentId)
-      }
+    let parsedStudentIds = [];
+    try {
+      parsedStudentIds = JSON.parse(studentIds);
+    } catch (e) {
+      if (studentIds) parsedStudentIds = [parseInt(studentIds)];
+    }
+    
+    if (!parsedStudentIds || parsedStudentIds.length === 0 || !title || !description) {
+      return res.status(400).json({ error: 'En az bir öğrenci, başlık ve içerik (description) zorunludur.' });
+    }
+
+    const currentTeacherId = parseInt(req.user.id);
+    const teacherExists = await prisma.user.findUnique({ where: { id: currentTeacherId } });
+    if (!teacherExists) {
+      return res.status(401).json({ message: "Geçersiz öğretmen oturumu. Lütfen çıkış yapıp tekrar giriş yapın." });
+    }
+
+    const assignmentData = parsedStudentIds.map(id => ({
+      title,
+      content: description,
+      status: 'PENDING',
+      dueDate: dueDate ? new Date(dueDate) : null,
+      fileUrl,
+      teacherId: currentTeacherId,
+      studentId: parseInt(id)
+    }));
+
+    await prisma.assignment.createMany({
+      data: assignmentData
     });
 
-    res.json({ message: 'Ödev başarıyla eklendi', assignment });
+    res.json({ message: 'Görevler başarıyla atandı', count: assignmentData.length });
   } catch (error) {
     console.error('Error creating assignment:', error);
     res.status(500).json({ error: 'Ödev eklenirken bir hata oluştu.' });
