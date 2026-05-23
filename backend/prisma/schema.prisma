@@ -22,6 +22,7 @@ model User {
   teacherAssignments Assignment[]  @relation("TeacherAssignments")
   practiceExams      PracticeExam[]
   chatSessions       ChatSession[]
+  notifications      Notification[]
 }
 
 enum Role {
@@ -38,6 +39,8 @@ model Assignment {
   status    AssignmentStatus @default(PENDING)
   dueDate   DateTime?
   fileUrl   String?
+  submittedFileUrl String?
+  studentNote      String?   @db.Text
   
   teacherId Int
   teacher   User             @relation("TeacherAssignments", fields: [teacherId], references: [id])
@@ -52,6 +55,8 @@ model Assignment {
 enum AssignmentStatus {
   PENDING
   COMPLETED
+  SUBMITTED
+  APPROVED
   LATE
 }
 
@@ -105,4 +110,15 @@ model Message {
   content       String      @db.Text
   
   createdAt     DateTime    @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String?
+  createdAt DateTime @default(now())
 }

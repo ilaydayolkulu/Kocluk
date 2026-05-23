@@ -168,6 +168,7 @@ app.get('/api/assignments/all', authenticateToken, checkRole(['TEACHER', 'ADMIN'
 app.post('/api/assignments', authenticateToken, checkRole(['TEACHER', 'ADMIN']), upload.single('file'), async (req, res) => {
   try {
     const { studentIds, title, description, dueDate } = req.body;
+    console.log("POST /api/assignments received body:", req.body);
     let fileUrl = null;
     
     if (req.file) {
@@ -182,7 +183,7 @@ app.post('/api/assignments', authenticateToken, checkRole(['TEACHER', 'ADMIN']),
     }
     
     if (!parsedStudentIds || parsedStudentIds.length === 0 || !title || !description) {
-      return res.status(400).json({ error: 'En az bir öğrenci, başlık ve içerik (description) zorunludur.' });
+      return res.status(400).json({ error: 'En az bir öğrenci, başlık ve içerik (description) zorunludur.', received: req.body });
     }
 
     const currentTeacherId = parseInt(req.user.id);
@@ -213,10 +214,10 @@ app.post('/api/assignments', authenticateToken, checkRole(['TEACHER', 'ADMIN']),
 });
 
 // 8. PUT /api/assignments/:id/status (Ödev Durumunu Güncelleme)
-app.put('/api/assignments/:id/status', authenticateToken, async (req, res) => {
+app.put('/api/assignments/:id/status', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, studentNote } = req.body;
 
     if (status !== 'COMPLETED' && status !== 'PENDING') {
       return res.status(400).json({ error: 'Geçersiz ödev durumu.' });
@@ -229,9 +230,18 @@ app.put('/api/assignments/:id/status', authenticateToken, async (req, res) => {
        return res.status(403).json({ error: 'Sadece kendi ödevinizin durumunu güncelleyebilirsiniz.' });
     }
 
+    let submittedFileUrl = existing.submittedFileUrl;
+    if (req.file) {
+      submittedFileUrl = `/uploads/${req.file.filename}`;
+    }
+
     const updatedAssignment = await prisma.assignment.update({
       where: { id: parseInt(id) },
-      data: { status }
+      data: { 
+        status,
+        submittedFileUrl,
+        studentNote: studentNote || existing.studentNote
+      }
     });
 
     res.json({ message: 'Ödev durumu güncellendi', updatedAssignment });
