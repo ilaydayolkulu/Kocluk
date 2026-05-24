@@ -17,6 +17,7 @@ export default function TeacherDashboardHome() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyAssignedStudents, setShowOnlyAssignedStudents] = useState(false);
   const [showAllTasksForDept, setShowAllTasksForDept] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('ALL');
 
   const [selectedTask, setSelectedTask] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -71,9 +72,14 @@ export default function TeacherDashboardHome() {
     }
   }, [filteredStudents, activeStudentId, showAllTasksForDept]);
 
-  const activeStudentTasks = allTasks
-    .filter(task => task.studentId === activeStudentId)
+  const rawActiveStudentTasks = allTasks.filter(task => task.studentId === activeStudentId);
+  const activeStudentTasks = rawActiveStudentTasks
+    .filter(task => statusFilter === 'ALL' || task.status === statusFilter)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  
+  const totalActiveTasksCount = rawActiveStudentTasks.length;
+  const completedActiveTasksCount = rawActiveStudentTasks.filter(t => t.status === 'COMPLETED').length;
+  const pendingActiveTasksCount = rawActiveStudentTasks.filter(t => t.status === 'PENDING').length;
 
   const activeStudent = allStudents.find(s => s.id === activeStudentId);
 
@@ -95,14 +101,26 @@ export default function TeacherDashboardHome() {
   const dynamicCounterText = `${getDeptName(selectedDepartment)} ${selectedDepartment === 'TÜMÜ' ? 'toplam' : 'alanında toplam'} ${activeStudentsInDeptCount} öğrenciye aktif görev tanımlanmış.`;
 
   // Yeni Görünüm Filtreleri
-  const displayedStudents = showOnlyAssignedStudents 
-    ? filteredStudents.filter(student => allTasks.some(task => task.studentId === student.id))
-    : filteredStudents;
+  const finalTasksForFilter = allTasks.filter(task => statusFilter === 'ALL' || task.status === statusFilter);
 
-  const deptTasks = allTasks.filter(task => {
+  const displayedStudents = showOnlyAssignedStudents 
+    ? filteredStudents.filter(student => finalTasksForFilter.some(task => task.studentId === student.id))
+    : statusFilter !== 'ALL'
+      ? filteredStudents.filter(student => finalTasksForFilter.some(task => task.studentId === student.id))
+      : filteredStudents;
+
+  const rawDeptTasks = allTasks.filter(task => {
     const student = allStudents.find(s => s.id === task.studentId);
     return student && (selectedDepartment === 'TÜMÜ' || student.department === selectedDepartment);
-  }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  });
+
+  const deptTasks = rawDeptTasks
+    .filter(task => statusFilter === 'ALL' || task.status === statusFilter)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const totalDeptTasksCount = rawDeptTasks.length;
+  const completedDeptTasksCount = rawDeptTasks.filter(t => t.status === 'COMPLETED').length;
+  const pendingDeptTasksCount = rawDeptTasks.filter(t => t.status === 'PENDING').length;
 
   const handleDeleteTask = async (taskId) => {
     if (!window.confirm('Bu ödevi kalıcı olarak silmek istediğinize emin misiniz?')) return;
@@ -292,9 +310,26 @@ export default function TeacherDashboardHome() {
                         <h3 className="text-xl font-bold text-slate-800">{getDeptName(selectedDepartment)} - Tüm Görevler</h3>
                         <p className="text-sm text-slate-500 mt-1">Seçili alandaki öğrencilere atanan tüm görevler</p>
                       </div>
-                      <span className="px-4 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-semibold text-slate-600 shadow-sm shrink-0">
-                        Toplam Görev: {deptTasks.length}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <button 
+                          onClick={() => setStatusFilter('ALL')}
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-transform hover:scale-[1.02] cursor-pointer ${statusFilter === 'ALL' ? 'bg-slate-800 text-white border-transparent' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          Toplam: {totalDeptTasksCount}
+                        </button>
+                        <button 
+                          onClick={() => setStatusFilter('COMPLETED')}
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-transform hover:scale-[1.02] cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-600 text-white border-transparent' : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'}`}
+                        >
+                          Tamamlanan: {completedDeptTasksCount}
+                        </button>
+                        <button 
+                          onClick={() => setStatusFilter('PENDING')}
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-transform hover:scale-[1.02] cursor-pointer ${statusFilter === 'PENDING' ? 'bg-rose-600 text-white border-transparent' : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'}`}
+                        >
+                          Bekleyen: {pendingDeptTasksCount}
+                        </button>
+                      </div>
                     </div>
 
                     {deptTasks.length === 0 ? (
@@ -326,29 +361,7 @@ export default function TeacherDashboardHome() {
                               <div className="inline-block px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-lg mb-2">
                                 Öğrenci: {task.student?.name || 'Bilinmeyen'}
                               </div>
-                              <p className="text-sm text-slate-500 line-clamp-2 mt-1">{task.content}</p>
                               
-                              {task.status === 'COMPLETED' && (task.studentNote || task.submittedFileUrl) && (
-                                <div className="mt-4 flex flex-col items-start gap-3">
-                                  {task.studentNote && (
-                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-start gap-2.5 w-full max-w-2xl">
-                                      <svg className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                                      <p className="text-sm text-slate-600 italic">"{task.studentNote}"</p>
-                                    </div>
-                                  )}
-                                  {task.submittedFileUrl && (
-                                    <a 
-                                      href={`http://localhost:5000${task.submittedFileUrl}`} 
-                                      target="_blank" 
-                                      rel="noreferrer"
-                                      className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 border border-purple-200 transition-colors w-fit"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                      Öğrenci Çözümünü Gör
-                                    </a>
-                                  )}
-                                </div>
-                              )}
 
                               <div className="flex flex-wrap items-center gap-4 mt-4 text-xs font-medium text-slate-500">
                                 <div className="flex items-center gap-1.5">
@@ -381,9 +394,26 @@ export default function TeacherDashboardHome() {
                         <h3 className="text-xl font-bold text-slate-800">{activeStudent.name}</h3>
                         <p className="text-sm text-slate-500 mt-1">Öğrenciye ait güncel görev kartları</p>
                       </div>
-                      <span className="px-4 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-semibold text-slate-600 shadow-sm shrink-0">
-                        Toplam Görev: {activeStudentTasks.length}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <button 
+                          onClick={() => setStatusFilter('ALL')}
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-transform hover:scale-[1.02] cursor-pointer ${statusFilter === 'ALL' ? 'bg-slate-800 text-white border-transparent' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          Toplam: {totalActiveTasksCount}
+                        </button>
+                        <button 
+                          onClick={() => setStatusFilter('COMPLETED')}
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-transform hover:scale-[1.02] cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-600 text-white border-transparent' : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'}`}
+                        >
+                          Tamamlanan: {completedActiveTasksCount}
+                        </button>
+                        <button 
+                          onClick={() => setStatusFilter('PENDING')}
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-transform hover:scale-[1.02] cursor-pointer ${statusFilter === 'PENDING' ? 'bg-rose-600 text-white border-transparent' : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'}`}
+                        >
+                          Bekleyen: {pendingActiveTasksCount}
+                        </button>
+                      </div>
                     </div>
 
                     {activeStudentTasks.length === 0 ? (
@@ -412,29 +442,7 @@ export default function TeacherDashboardHome() {
                                   {task.status === 'COMPLETED' ? 'Tamamlandı' : 'Bekliyor'}
                                 </span>
                               </div>
-                              <p className="text-sm text-slate-500 line-clamp-2 mt-2">{task.content}</p>
                               
-                              {task.status === 'COMPLETED' && (task.studentNote || task.submittedFileUrl) && (
-                                <div className="mt-4 flex flex-col items-start gap-3">
-                                  {task.studentNote && (
-                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-start gap-2.5 w-full max-w-2xl">
-                                      <svg className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                                      <p className="text-sm text-slate-600 italic">"{task.studentNote}"</p>
-                                    </div>
-                                  )}
-                                  {task.submittedFileUrl && (
-                                    <a 
-                                      href={`http://localhost:5000${task.submittedFileUrl}`} 
-                                      target="_blank" 
-                                      rel="noreferrer"
-                                      className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 border border-purple-200 transition-colors w-fit"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                      Öğrenci Çözümünü Gör
-                                    </a>
-                                  )}
-                                </div>
-                              )}
 
                               <div className="flex flex-wrap items-center gap-4 mt-4 text-xs font-medium text-slate-500">
                                 <div className="flex items-center gap-1.5">
