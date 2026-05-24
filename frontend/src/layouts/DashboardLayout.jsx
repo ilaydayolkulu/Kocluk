@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import LogoutModal from "../components/LogoutModal";
 
@@ -24,6 +24,106 @@ export default function DashboardLayout() {
       ? "bg-slate-700 p-2.5 rounded-xl cursor-pointer text-white"
       : "p-2.5 rounded-xl cursor-pointer hover:bg-slate-800 text-slate-400 hover:text-white transition";
   };
+
+  const [notifications, setNotifications] = useState([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationRef = useRef(null);
+
+  const fetchNotifications = () => {
+    const token = localStorage.getItem('token');
+    if (!token || !user.id) return;
+    
+    fetch(`http://localhost:5000/api/notifications/student/${user.id}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data)) {
+        setNotifications(data);
+      }
+    })
+    .catch(err => console.error("Bildirimler çekilemedi:", err));
+  };
+
+  useEffect(() => {
+    if (user.id) fetchNotifications();
+  }, [user.id]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setIsNotificationOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleMarkAllAsRead = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`http://localhost:5000/api/notifications/student/${user.id}/read-all`, {
+        method: 'PUT',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      }
+    } catch (error) {
+      console.error("Bildirimler okundu işaretlenemedi:", error);
+    }
+  };
+
+  const handleMarkSingleAsRead = async (notif) => {
+    if (notif.isRead) return;
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`http://localhost:5000/api/notifications/${notif.id}/read`, {
+        method: 'PUT',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+      }
+    } catch (error) {
+      console.error("Bildirim okundu işaretlenemedi:", error);
+    }
+  };
+
+  const handleDeleteSingle = async (e, id) => {
+    e.stopPropagation(); // prevent mark as read
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`http://localhost:5000/api/notifications/${id}`, {
+        method: 'DELETE',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      }
+    } catch (error) {
+      console.error("Bildirim silinemedi:", error);
+    }
+  };
+
+  const handleClearAll = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`http://localhost:5000/api/notifications/student/${user.id}/clear-all`, {
+        method: 'DELETE',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setNotifications([]);
+      }
+    } catch (error) {
+      console.error("Bildirimler temizlenemedi:", error);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] font-sans text-slate-800">
@@ -66,15 +166,96 @@ export default function DashboardLayout() {
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         
         {/* Ortak Header */}
-        <header className="flex justify-between md:justify-end items-center bg-white p-4 m-4 md:m-8 lg:m-12 mb-0 rounded-2xl shadow-sm shrink-0">
+        <header className="flex justify-between md:justify-end items-center bg-white py-3 px-4 m-4 md:mx-8 md:mt-6 lg:mx-12 lg:mt-6 mb-0 rounded-2xl shadow-sm shrink-0">
           <button className="md:hidden p-2 text-slate-500">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
           </button>
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-400 hover:text-slate-600 transition">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full border-2 border-white"></span>
-            </button>
+            {/* Bildirim Menüsü */}
+            <div className="relative" ref={notificationRef}>
+              <button 
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                className="relative p-2 text-slate-400 hover:text-slate-600 transition"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[9px] text-white flex items-center justify-center font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Dropdown */}
+              {isNotificationOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden flex flex-col">
+                  <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <h3 className="text-sm font-bold text-slate-800">Bildirimler</h3>
+                    {unreadCount > 0 && (
+                      <span className="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                        {unreadCount} Yeni
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="max-h-80 overflow-y-auto custom-calendar-scroll">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-slate-500">
+                        Henüz hiç bildiriminiz yok.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-50">
+                        {notifications.map(notif => (
+                          <div 
+                            key={notif.id} 
+                            onClick={() => handleMarkSingleAsRead(notif)}
+                            className={`p-4 transition-colors cursor-pointer relative group ${notif.isRead ? 'bg-white hover:bg-slate-50' : 'bg-blue-50/50 hover:bg-blue-50'}`}
+                          >
+                            <div className="flex items-start gap-3 pr-6">
+                              <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${notif.isRead ? 'bg-slate-300' : 'bg-blue-500'}`}></div>
+                              <div>
+                                <p className={`text-sm ${notif.isRead ? 'text-slate-600 font-medium' : 'text-slate-800 font-bold'}`}>
+                                  {notif.title}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5 whitespace-pre-wrap">{notif.message}</p>
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                  {new Date(notif.createdAt).toLocaleDateString('tr-TR', { hour: '2-digit', minute:'2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => handleDeleteSingle(e, notif.id)}
+                              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                              title="Bildirimi Sil"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {notifications.length > 0 && (
+                    <div className="p-2 border-t border-slate-100 bg-slate-50 flex gap-2">
+                      {unreadCount > 0 && (
+                        <button 
+                          onClick={handleMarkAllAsRead}
+                          className="flex-1 text-center text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors py-2 rounded-xl hover:bg-white border border-transparent hover:border-slate-200"
+                        >
+                          Tümünü Okundu İşaretle
+                        </button>
+                      )}
+                      <button 
+                        onClick={handleClearAll}
+                        className="flex-1 text-center text-xs font-semibold text-slate-600 hover:text-red-600 transition-colors py-2 rounded-xl hover:bg-white border border-transparent hover:border-slate-200"
+                      >
+                        Tümünü Temizle
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {/* Öğrenci Profili */}
             <div className="flex items-center gap-3">
               <div className="hidden md:block text-right">
@@ -87,7 +268,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* Sayfaların İçeriği Buraya Gelecek */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 pt-4 md:pt-8 lg:pt-8 space-y-8">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 pt-4 md:pt-5 lg:pt-5 space-y-8">
           <Outlet />
         </div>
 

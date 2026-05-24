@@ -209,6 +209,17 @@ app.post('/api/assignments', authenticateToken, checkRole(['TEACHER', 'ADMIN']),
       data: assignmentData
     });
 
+    // Bildirimleri oluştur
+    const notificationData = parsedStudentIds.map(id => ({
+      title: `Koç: ${teacherExists.name}`,
+      message: `Görev: ${title}`,
+      userId: parseInt(id)
+    }));
+
+    await prisma.notification.createMany({
+      data: notificationData
+    });
+
     res.json({ message: 'Görevler başarıyla atandı', count: assignmentData.length });
   } catch (error) {
     console.error('Error creating assignment:', error);
@@ -338,6 +349,135 @@ app.post('/api/exams', authenticateToken, checkRole(['STUDENT']), async (req, re
 // Generic test route
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'Pong' });
+});
+
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
+
+// GET /api/notifications/student/:studentId
+app.get('/api/notifications/student/:studentId', authenticateToken, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    
+    // Güvenlik: Kendi bildirimleri veya Öğretmen/Admin yetkisi
+    if (req.user.id !== studentId && req.user.role === 'STUDENT') {
+      return res.status(403).json({ error: 'Yetkiniz yok.' });
+    }
+
+    const notifications = await prisma.notification.findMany({
+      where: { userId: studentId },
+      orderBy: [
+        { isRead: 'asc' }, // okunmamışlar önce
+        { createdAt: 'desc' } // yeniler önce
+      ],
+      take: 20 // son 20 bildirim
+    });
+    
+    res.json(notifications);
+  } catch (error) {
+    console.error('Bildirimler getirilirken hata:', error);
+    res.status(500).json({ error: 'Bildirimler getirilemedi.' });
+  }
+});
+
+// PUT /api/notifications/student/:studentId/read-all
+app.put('/api/notifications/student/:studentId/read-all', authenticateToken, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    
+    if (req.user.id !== studentId && req.user.role === 'STUDENT') {
+      return res.status(403).json({ error: 'Yetkiniz yok.' });
+    }
+
+    await prisma.notification.updateMany({
+      where: { 
+        userId: studentId,
+        isRead: false 
+      },
+      data: { isRead: true }
+    });
+
+    res.json({ message: 'Tüm bildirimler okundu işaretlendi.' });
+  } catch (error) {
+    console.error('Bildirimler güncellenirken hata:', error);
+    res.status(500).json({ error: 'Bildirimler güncellenemedi.' });
+  }
+});
+
+// PUT /api/notifications/:id/read
+app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const notificationId = parseInt(req.params.id);
+    const notification = await prisma.notification.findUnique({
+      where: { id: notificationId }
+    });
+
+    if (!notification) {
+      return res.status(404).json({ error: 'Bildirim bulunamadı.' });
+    }
+
+    if (req.user.id !== notification.userId && req.user.role === 'STUDENT') {
+      return res.status(403).json({ error: 'Yetkiniz yok.' });
+    }
+
+    await prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true }
+    });
+
+    res.json({ message: 'Bildirim okundu işaretlendi.' });
+  } catch (error) {
+    console.error('Bildirim güncellenirken hata:', error);
+    res.status(500).json({ error: 'Bildirim güncellenemedi.' });
+  }
+});
+
+// DELETE /api/notifications/:id
+app.delete('/api/notifications/:id', authenticateToken, async (req, res) => {
+  try {
+    const notificationId = parseInt(req.params.id);
+    const notification = await prisma.notification.findUnique({
+      where: { id: notificationId }
+    });
+
+    if (!notification) {
+      return res.status(404).json({ error: 'Bildirim bulunamadı.' });
+    }
+
+    if (req.user.id !== notification.userId && req.user.role === 'STUDENT') {
+      return res.status(403).json({ error: 'Yetkiniz yok.' });
+    }
+
+    await prisma.notification.delete({
+      where: { id: notificationId }
+    });
+
+    res.json({ message: 'Bildirim silindi.' });
+  } catch (error) {
+    console.error('Bildirim silinirken hata:', error);
+    res.status(500).json({ error: 'Bildirim silinemedi.' });
+  }
+});
+
+// DELETE /api/notifications/student/:studentId/clear-all
+app.delete('/api/notifications/student/:studentId/clear-all', authenticateToken, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    
+    if (req.user.id !== studentId && req.user.role === 'STUDENT') {
+      return res.status(403).json({ error: 'Yetkiniz yok.' });
+    }
+
+    await prisma.notification.deleteMany({
+      where: { userId: studentId }
+    });
+
+    res.json({ message: 'Tüm bildirimler silindi.' });
+  } catch (error) {
+    console.error('Bildirimler silinirken hata:', error);
+    res.status(500).json({ error: 'Bildirimler silinemedi.' });
+  }
 });
 
 app.listen(PORT, () => {

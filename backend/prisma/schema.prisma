@@ -22,6 +22,7 @@ model User {
   teacherAssignments Assignment[]  @relation("TeacherAssignments")
   practiceExams      PracticeExam[]
   chatSessions       ChatSession[]
+  notifications      Notification[]
 }
 
 enum Role {
@@ -107,4 +108,17 @@ model Message {
   content       String      @db.Text
   
   createdAt     DateTime    @default(now())
+}
+
+// Sistemdeki kullanıcıların (özellikle öğrencilerin) bildirimlerini tutan model.
+model Notification {
+  id        Int      @id @default(autoincrement())
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
 }
