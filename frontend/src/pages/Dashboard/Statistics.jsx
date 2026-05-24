@@ -222,8 +222,8 @@ function ExamCard({ title, totalQuestions, data, breakdown, headerRight }) {
   const net = dogru - (yanlis * 0.25);
   
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col h-full hover:shadow-md transition-shadow duration-300">
-      <div className="flex justify-between items-start mb-6">
+    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col h-full justify-between hover:shadow-md transition-shadow duration-300">
+      <div className="flex justify-between items-start mb-6 shrink-0">
         <div>
           <h2 className="text-xl font-bold text-slate-800 mb-1">{title}</h2>
           <p className="text-sm text-slate-500">Toplam {totalQuestions} Soru</p>
@@ -231,7 +231,7 @@ function ExamCard({ title, totalQuestions, data, breakdown, headerRight }) {
         {headerRight && <div>{headerRight}</div>}
       </div>
       
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6 flex-1">
         <div className="w-40 h-40 relative shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -547,20 +547,30 @@ export default function StatisticsPage() {
           ) : (
             <>
               {/* Çark Kartları (Pie Charts) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                <ExamCard title="TYT Deneme Sınavı" totalQuestions={120} data={tytData} breakdown={tytBreakdown} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                
+                {/* TYT Sol Sütun (Simetri için sarmalayıcı) */}
+                <div className="flex flex-col h-full">
+                  {/* Sağdaki butonlarla hizalamak için masaüstünde görünmez bir boşluk */}
+                  <div className="hidden lg:block h-[32px] mb-3 opacity-0 pointer-events-none"></div>
+                  <div className="flex-1 flex flex-col">
+                    <ExamCard title="TYT Deneme Sınavı" totalQuestions={120} data={tytData} breakdown={tytBreakdown} />
+                  </div>
+                </div>
                 
                 <div className="flex flex-col h-full">
-                  <div className="flex justify-end mb-3 gap-2 shrink-0">
-                    <button onClick={() => setExamView('AYT')} className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${examView === 'AYT' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>AYT</button>
-                    <button onClick={() => setExamView('YDT')} className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${examView === 'YDT' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>YDT (Dil)</button>
+                  <div className="flex justify-end mb-3 gap-2 shrink-0 h-[32px]">
+                    <button onClick={() => setExamView('AYT')} className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-center ${examView === 'AYT' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>AYT</button>
+                    <button onClick={() => setExamView('YDT')} className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-center ${examView === 'YDT' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>YDT (Dil)</button>
                   </div>
                   
                   {examView === 'AYT' ? (
                     lastAyt ? (
-                      <ExamCard title="AYT Performans Analizi" totalQuestions={80} data={aytData} breakdown={aytBreakdown} headerRight={aytHeaderRight} />
+                      <div className="flex-1 flex flex-col">
+                        <ExamCard title="AYT Performans Analizi" totalQuestions={80} data={aytData} breakdown={aytBreakdown} headerRight={aytHeaderRight} />
+                      </div>
                     ) : (
-                      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center h-full flex flex-col items-center justify-center">
+                      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-12 text-center h-full flex flex-col items-center justify-center">
                         <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center mb-4">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         </div>
@@ -569,9 +579,11 @@ export default function StatisticsPage() {
                     )
                   ) : (
                     lastYdt ? (
-                      <ExamCard title="YDT (Dil) Performans Analizi" totalQuestions={80} data={ydtData} breakdown={ydtBreakdown} />
+                      <div className="flex-1 flex flex-col">
+                        <ExamCard title="YDT (Dil) Performans Analizi" totalQuestions={80} data={ydtData} breakdown={ydtBreakdown} />
+                      </div>
                     ) : (
-                      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center h-full flex flex-col items-center justify-center">
+                      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-12 text-center h-full flex flex-col items-center justify-center">
                         <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center mb-4">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         </div>
