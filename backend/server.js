@@ -315,17 +315,19 @@ app.post('/api/exams', authenticateToken, checkRole(['STUDENT']), async (req, re
       aytMathD, aytMathY, 
       aytScienceD, aytScienceY, 
       aytEdSos1D, aytEdSos1Y, 
-      aytSocial2D, aytSocial2Y 
+      aytSocial2D, aytSocial2Y,
+      ydtLangD, ydtLangY
     } = req.body;
 
     if (!examType || !examName) {
-      return res.status(400).json({ error: 'Sınav türü (TYT/AYT) ve Sınav Adı zorunludur.' });
+      return res.status(400).json({ error: 'Sınav türü (TYT/AYT/YDT) ve Sınav Adı zorunludur.' });
     }
 
     const calcNet = (d, y) => (parseInt(d) || 0) - ((parseInt(y) || 0) * 0.25);
 
     let tytTurkish = 0, tytMath = 0, tytSocial = 0, tytScience = 0;
     let aytMath = 0, aytScience = 0, aytEdSos1 = 0, aytSocial2 = 0;
+    let ydtLanguage = 0;
     let totalNet = 0;
 
     if (examType === 'TYT') {
@@ -334,12 +336,15 @@ app.post('/api/exams', authenticateToken, checkRole(['STUDENT']), async (req, re
       tytSocial = calcNet(tytSocialD, tytSocialY);
       tytScience = calcNet(tytScienceD, tytScienceY);
       totalNet = tytTurkish + tytMath + tytSocial + tytScience;
-    } else {
+    } else if (examType === 'AYT') {
       aytMath = calcNet(aytMathD, aytMathY);
       aytScience = calcNet(aytScienceD, aytScienceY);
       aytEdSos1 = calcNet(aytEdSos1D, aytEdSos1Y);
       aytSocial2 = calcNet(aytSocial2D, aytSocial2Y);
       totalNet = aytMath + aytScience + aytEdSos1 + aytSocial2;
+    } else if (examType === 'YDT') {
+      ydtLanguage = calcNet(ydtLangD, ydtLangY);
+      totalNet = ydtLanguage;
     }
 
     const exam = await prisma.practiceExam.create({
@@ -355,6 +360,7 @@ app.post('/api/exams', authenticateToken, checkRole(['STUDENT']), async (req, re
         aytScience,
         aytEdSos1,
         aytSocial2,
+        ydtLanguage,
         studentId: req.user.id,
         ...(examDate && { createdAt: new Date(examDate) })
       }

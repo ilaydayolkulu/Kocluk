@@ -28,6 +28,7 @@ function ExamCreateModal({ isOpen, onClose, onExamCreated }) {
     aytScienceD: "", aytScienceY: "",
     aytEdSos1D: "", aytEdSos1Y: "",
     aytSocial2D: "", aytSocial2Y: "",
+    ydtLangD: "", ydtLangY: "",
   });
 
   if (!isOpen) return null;
@@ -63,11 +64,13 @@ function ExamCreateModal({ isOpen, onClose, onExamCreated }) {
       validateSubject(formData.tytMathD, formData.tytMathY, 40, "Matematik", "tytMathD", "tytMathY");
       validateSubject(formData.tytSocialD, formData.tytSocialY, 20, "Sosyal", "tytSocialD", "tytSocialY");
       validateSubject(formData.tytScienceD, formData.tytScienceY, 20, "Fen Bilimleri", "tytScienceD", "tytScienceY");
-    } else {
+    } else if (examType === "AYT") {
       validateSubject(formData.aytMathD, formData.aytMathY, 40, "Matematik", "aytMathD", "aytMathY");
       validateSubject(formData.aytScienceD, formData.aytScienceY, 40, "Fen Bilimleri", "aytScienceD", "aytScienceY");
       validateSubject(formData.aytEdSos1D, formData.aytEdSos1Y, 40, "Edebiyat-Sos1", "aytEdSos1D", "aytEdSos1Y");
       validateSubject(formData.aytSocial2D, formData.aytSocial2Y, 40, "Sosyal-2", "aytSocial2D", "aytSocial2Y");
+    } else if (examType === "YDT") {
+      validateSubject(formData.ydtLangD, formData.ydtLangY, 80, "Yabancı Dil", "ydtLangD", "ydtLangY");
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -98,6 +101,7 @@ function ExamCreateModal({ isOpen, onClose, onExamCreated }) {
           tytSocialD: "", tytSocialY: "", tytScienceD: "", tytScienceY: "",
           aytMathD: "", aytMathY: "", aytScienceD: "", aytScienceY: "",
           aytEdSos1D: "", aytEdSos1Y: "", aytSocial2D: "", aytSocial2Y: "",
+          ydtLangD: "", ydtLangY: "",
         });
       } else {
         alert("Sınav eklenirken hata oluştu.");
@@ -164,25 +168,34 @@ function ExamCreateModal({ isOpen, onClose, onExamCreated }) {
               >
                 <option value="TYT">TYT</option>
                 <option value="AYT">AYT</option>
+                <option value="YDT">YDT</option>
               </select>
             </div>
 
             <div className="pt-2 border-t border-slate-100">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Ders Sonuçları (Opsiyonel)</h3>
-              {examType === "TYT" ? (
-                <>
-                  {renderInputs("Türkçe (40 Soru)", "tytTurkishD", "tytTurkishY")}
-                  {renderInputs("Matematik (40 Soru)", "tytMathD", "tytMathY")}
-                  {renderInputs("Sosyal Bilgiler (20 Soru)", "tytSocialD", "tytSocialY")}
-                  {renderInputs("Fen Bilimleri (20 Soru)", "tytScienceD", "tytScienceY")}
-                </>
-              ) : (
-                <>
-                  {renderInputs("Matematik (40 Soru)", "aytMathD", "aytMathY")}
-                  {renderInputs("Fen Bilimleri (40 Soru)", "aytScienceD", "aytScienceY")}
-                  {renderInputs("Edebiyat-Sos1 (40 Soru)", "aytEdSos1D", "aytEdSos1Y")}
-                  {renderInputs("Sosyal-2 (40 Soru)", "aytSocial2D", "aytSocial2Y")}
-                </>
+              {examType === 'TYT' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                  {renderInputs("Türkçe", "tytTurkishD", "tytTurkishY")}
+                  {renderInputs("Matematik", "tytMathD", "tytMathY")}
+                  {renderInputs("Sosyal Bilgiler", "tytSocialD", "tytSocialY")}
+                  {renderInputs("Fen Bilimleri", "tytScienceD", "tytScienceY")}
+                </div>
+              )}
+              
+              {examType === 'AYT' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                  {renderInputs("Matematik", "aytMathD", "aytMathY")}
+                  {renderInputs("Fen Bilimleri", "aytScienceD", "aytScienceY")}
+                  {renderInputs("Edebiyat-Sos1", "aytEdSos1D", "aytEdSos1Y")}
+                  {renderInputs("Sosyal-2", "aytSocial2D", "aytSocial2Y")}
+                </div>
+              )}
+
+              {examType === 'YDT' && (
+                <div className="grid grid-cols-1 gap-x-6">
+                  {renderInputs("Yabancı Dil", "ydtLangD", "ydtLangY")}
+                </div>
               )}
             </div>
           </form>
@@ -309,6 +322,7 @@ export default function StatisticsPage() {
   const [timeFilter, setTimeFilter] = useState("all");
   const [examTab, setExamTab] = useState("TYT");
   const [aytTab, setAytTab] = useState("SAY");
+  const [examView, setExamView] = useState("AYT");
   
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -447,6 +461,23 @@ export default function StatisticsPage() {
     }
   }
 
+  // YDT Hesaplama
+  const lastYdt = sortedExams.find(e => e.examType === 'YDT');
+  let ydtData = [ { name: "Doğru", value: 0 }, { name: "Yanlış", value: 0 }, { name: "Boş", value: 80 } ];
+  let ydtBreakdown = [];
+
+  if (lastYdt) {
+    const lang = getDYFromNet(lastYdt.ydtLanguage);
+    ydtData = [ 
+      { name: "Doğru", value: lang.d }, 
+      { name: "Yanlış", value: lang.y }, 
+      { name: "Boş", value: 80 - lang.d - lang.y } 
+    ];
+    ydtBreakdown = [ 
+      { subject: "Yabancı Dil", total: 80, d: lang.d, y: lang.y } 
+    ];
+  }
+
   const aytHeaderRight = (
     <div className="flex bg-slate-100 p-1 rounded-lg shrink-0 border border-slate-200/60">
       {['SAY', 'EA', 'SÖZ'].map(tab => (
@@ -516,9 +547,39 @@ export default function StatisticsPage() {
           ) : (
             <>
               {/* Çark Kartları (Pie Charts) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 <ExamCard title="TYT Deneme Sınavı" totalQuestions={120} data={tytData} breakdown={tytBreakdown} />
-                <ExamCard title="AYT Deneme Sınavı" totalQuestions={80} data={aytData} breakdown={aytBreakdown} headerRight={aytHeaderRight} />
+                
+                <div className="flex flex-col h-full">
+                  <div className="flex justify-end mb-3 gap-2 shrink-0">
+                    <button onClick={() => setExamView('AYT')} className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${examView === 'AYT' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>AYT</button>
+                    <button onClick={() => setExamView('YDT')} className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${examView === 'YDT' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>YDT (Dil)</button>
+                  </div>
+                  
+                  {examView === 'AYT' ? (
+                    lastAyt ? (
+                      <ExamCard title="AYT Performans Analizi" totalQuestions={80} data={aytData} breakdown={aytBreakdown} headerRight={aytHeaderRight} />
+                    ) : (
+                      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center h-full flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center mb-4">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800">Bu alana ait deneme verisi bulunamadı</h3>
+                      </div>
+                    )
+                  ) : (
+                    lastYdt ? (
+                      <ExamCard title="YDT (Dil) Performans Analizi" totalQuestions={80} data={ydtData} breakdown={ydtBreakdown} />
+                    ) : (
+                      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center h-full flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center mb-4">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800">Bu alana ait deneme verisi bulunamadı</h3>
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
 
               {/* Genel İlerleme Grafiği (Line Chart) */}
@@ -534,6 +595,7 @@ export default function StatisticsPage() {
                     <div className="flex bg-slate-100 p-1.5 rounded-xl shrink-0">
                       <button onClick={() => setExamTab("TYT")} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${examTab === 'TYT' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>TYT</button>
                       <button onClick={() => setExamTab("AYT")} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${examTab === 'AYT' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>AYT</button>
+                      <button onClick={() => setExamTab("YDT")} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${examTab === 'YDT' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>YDT</button>
                     </div>
                     <div className="flex bg-slate-100 p-1.5 rounded-xl shrink-0">
                       <button onClick={() => setTimeFilter("all")} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Tüm Dönem</button>
@@ -551,7 +613,7 @@ export default function StatisticsPage() {
                       <YAxis domain={[0, 120]} axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} />
                       <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} itemStyle={{ fontWeight: 600 }} />
                       <Legend verticalAlign="top" height={40} iconType="circle" wrapperStyle={{ fontSize: '14px', fontWeight: 500 }} />
-                      <Line name={`${examTab} Neti`} type="monotone" dataKey="net" stroke={examTab === "TYT" ? "#3b82f6" : "#8b5cf6"} strokeWidth={4} dot={{ r: 5, strokeWidth: 2, fill: "#fff", stroke: examTab === "TYT" ? "#3b82f6" : "#8b5cf6" }} activeDot={{ r: 7 }} />
+                      <Line name={`${examTab} Neti`} type="monotone" dataKey="net" stroke={examTab === "TYT" ? "#3b82f6" : examTab === "AYT" ? "#8b5cf6" : "#f59e0b"} strokeWidth={4} dot={{ r: 5, strokeWidth: 2, fill: "#fff", stroke: examTab === "TYT" ? "#3b82f6" : examTab === "AYT" ? "#8b5cf6" : "#f59e0b" }} activeDot={{ r: 7 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -567,7 +629,7 @@ export default function StatisticsPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
               <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto shrink-0">
-                {["Tümü", "TYT", "AYT"].map(tab => (
+                {["Tümü", "TYT", "AYT", "YDT"].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setHistoryFilter(tab)}
@@ -606,7 +668,7 @@ export default function StatisticsPage() {
                       <div className="flex-1 pr-4">
                         <h3 className="font-bold text-slate-800 truncate">{exam.examName}</h3>
                         <span className="inline-block px-2 py-0.5 mt-1.5 bg-slate-200/70 text-slate-600 text-[10px] font-bold rounded-md uppercase tracking-wider">
-                          {exam.examType}
+                          {exam.examType === 'YDT' ? 'YDT - DİL' : exam.examType}
                         </span>
                       </div>
                       
@@ -615,27 +677,29 @@ export default function StatisticsPage() {
                         {new Date(exam.createdAt).toLocaleDateString("tr-TR")}
                       </div>
                       
-                      {exam.examType === 'TYT' ? (
-                      <div className="w-24 text-right sm:text-left shrink-0">
-                        <span className="font-bold text-slate-800 text-base">{(Number(exam.totalNet) || 0).toFixed(2)}</span>
-                        <span className="text-xs text-slate-500 ml-1 font-medium">Net</span>
+                      <div className="w-full sm:w-72 md:w-80 flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-end gap-2 mt-3 sm:mt-0 shrink-0">
+                        {exam.examType === 'TYT' ? (
+                          <div className="bg-blue-50 text-blue-700 border-blue-100 px-2.5 py-1 rounded-xl text-xs font-bold tracking-wide shadow-sm border">
+                            TYT: {(Number(exam.totalNet) || 0).toFixed(2)} N
+                          </div>
+                        ) : exam.examType === 'YDT' ? (
+                          <div className="bg-amber-50 text-amber-700 border-amber-100 px-2.5 py-1 rounded-xl text-xs font-bold tracking-wide shadow-sm border">
+                            DİL: {((Number(exam.ydtLanguage) || 0)).toFixed(2)} N
+                          </div>
+                        ) : (
+                          <>
+                            <div className="bg-purple-50 text-purple-700 border-purple-100 px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold tracking-wide shadow-sm border whitespace-nowrap">
+                              SAY: {((Number(exam.aytMath) || 0) + (Number(exam.aytScience) || 0)).toFixed(2)} N
+                            </div>
+                            <div className="bg-pink-50 text-pink-700 border-pink-100 px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold tracking-wide shadow-sm border whitespace-nowrap">
+                              EA: {((Number(exam.aytMath) || 0) + (Number(exam.aytEdSos1) || 0)).toFixed(2)} N
+                            </div>
+                            <div className="bg-indigo-50 text-indigo-700 border-indigo-100 px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold tracking-wide shadow-sm border whitespace-nowrap">
+                              SÖZ: {((Number(exam.aytEdSos1) || 0) + (Number(exam.aytSocial2) || 0)).toFixed(2)} N
+                            </div>
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      <div className="flex flex-col gap-1 shrink-0 w-24 sm:w-28 justify-center">
-                        <div className="bg-blue-50/80 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100 flex justify-between items-center text-[10px] font-bold">
-                          <span>SAY</span>
-                          <span>{((Number(exam.aytMath) || 0) + (Number(exam.aytScience) || 0)).toFixed(2)}</span>
-                        </div>
-                        <div className="bg-indigo-50/80 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100 flex justify-between items-center text-[10px] font-bold">
-                          <span>EA</span>
-                          <span>{((Number(exam.aytMath) || 0) + (Number(exam.aytEdSos1) || 0)).toFixed(2)}</span>
-                        </div>
-                        <div className="bg-emerald-50/80 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100 flex justify-between items-center text-[10px] font-bold">
-                          <span>SÖZ</span>
-                          <span>{((Number(exam.aytEdSos1) || 0) + (Number(exam.aytSocial2) || 0)).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
                       
                       <div className="flex gap-2 shrink-0">
                         <button 
@@ -666,6 +730,10 @@ export default function StatisticsPage() {
                               {renderSubjectDetail("Matematik", exam.tytMath)}
                               {renderSubjectDetail("Sosyal B.", exam.tytSocial)}
                               {renderSubjectDetail("Fen Bil.", exam.tytScience)}
+                            </>
+                          ) : exam.examType === 'YDT' ? (
+                            <>
+                              {renderSubjectDetail("Yabancı Dil (80 Soru)", exam.ydtLanguage)}
                             </>
                           ) : (
                             <>

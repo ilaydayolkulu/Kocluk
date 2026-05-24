@@ -77,6 +77,9 @@ model PracticeExam {
   aytEdSos1   Float?   @default(0)
   aytSocial2  Float?   @default(0)
 
+  // YDT Columns
+  ydtLanguage Float?   @default(0)
+
   studentId   Int
   student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
@@ -86,6 +89,7 @@ model PracticeExam {
 enum ExamType {
   TYT
   AYT
+  YDT
 }
 
 // Yapay zeka asistanı ile yapılan sohbet oturumlarını (oturum bazlı) gruplayan model.

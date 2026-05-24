@@ -163,6 +163,23 @@ async function main() {
         studentId: mehmet.id,
         createdAt: aytDate
       });
+
+      // YDT için
+      const ydtDate = new Date(examDate);
+      ydtDate.setHours(ydtDate.getHours() + 4); // Birkaç saat sonra
+      
+      const ydtLangCorrect = 50 + i * 2; // 50'den başlayıp yavaşça artar
+      const ydtLangWrong = 8;
+      const ydtTotalNet = ydtLangCorrect - (ydtLangWrong * 0.25);
+
+      examsData.push({
+        examName: `YDT Genel Deneme ${i + 1}`,
+        examType: 'YDT',
+        totalNet: ydtTotalNet,
+        ydtLanguage: ydtTotalNet,
+        studentId: mehmet.id,
+        createdAt: ydtDate
+      });
     }
     
     await prisma.practiceExam.createMany({
