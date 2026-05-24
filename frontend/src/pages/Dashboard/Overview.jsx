@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
+import TaskCompletionModal from "../../components/TaskCompletionModal";
+import TaskInspectModal from "../../components/TaskInspectModal";
 
 export default function StudentDashboard() {
   const [tasks, setTasks] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [latestExam, setLatestExam] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInspectOpen, setIsInspectOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [inspectTask, setInspectTask] = useState(null);
 
   const fetchDashboardData = () => {
     const userStr = localStorage.getItem('user');
@@ -94,16 +102,37 @@ export default function StudentDashboard() {
     fetchDashboardData();
   }, []);
 
-  const handleToggleTask = async (taskId, currentChecked) => {
-    const newStatus = currentChecked ? 'PENDING' : 'COMPLETED';
+  const handleToggleTaskClick = (task) => {
+    // Kilit: Eğer görev zaten tamamlandıysa hiçbir işlem yapma
+    if (task.checked) return;
     
+    // Görevi tamamlamak istiyorsa modalı aç
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
+
+  const handleModalConfirm = async ({ file, studentNote }) => {
+    if (!selectedTask) return;
+    
+    // FormData hazırla
+    const formData = new FormData();
+    formData.append('status', 'COMPLETED');
+    if (studentNote) formData.append('studentNote', studentNote);
+    if (file) formData.append('file', file);
+
+    await handleStatusUpdate(selectedTask.id, 'COMPLETED', formData);
+    setIsModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleStatusUpdate = async (taskId, newStatus, formData = null) => {
     // 1. Optimistic Update (Ekranı anında güncelle)
     setTasks(tasks.map(task => {
       if (task.id === taskId) {
         return { 
           ...task, 
-          checked: !currentChecked, 
-          status: !currentChecked ? 'Tamamlandı' : 'Bekliyor' 
+          checked: newStatus === 'COMPLETED', 
+          status: newStatus === 'COMPLETED' ? 'Tamamlandı' : 'Bekliyor' 
         };
       }
       return task;
@@ -112,14 +141,21 @@ export default function StudentDashboard() {
     // 2. Backend'e gönder
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:5000/api/assignments/${taskId}/status`, {
+      const fetchOptions = {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
+        }
+      };
+
+      if (formData) {
+        fetchOptions.body = formData;
+      } else {
+        fetchOptions.headers['Content-Type'] = 'application/json';
+        fetchOptions.body = JSON.stringify({ status: newStatus });
+      }
+
+      await fetch(`http://localhost:5000/api/assignments/${taskId}/status`, fetchOptions);
     } catch (err) {
       console.error('Görev güncellenemedi:', err);
     }
@@ -176,15 +212,31 @@ export default function StudentDashboard() {
                   <div key={task.id} className="flex flex-col gap-1.5 group pb-1">
                     <div className="flex items-center justify-between">
                       <div 
-                        className="flex items-center gap-3 cursor-pointer select-none flex-1"
-                        onClick={() => handleToggleTask(task.id, task.checked)}
+                        className={`flex items-center gap-3 select-none flex-1 ${
+                          task.checked ? "cursor-not-allowed opacity-90" : "cursor-pointer"
+                        }`}
+                        onClick={() => {
+                          if (task.checked) return;
+                          handleToggleTaskClick(task);
+                        }}
                       >
                         <div className={`w-5 h-5 shrink-0 rounded flex items-center justify-center border transition-colors ${task.checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
                           {task.checked && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>}
                         </div>
                         <span className={`text-sm md:text-base font-medium transition-colors ${task.checked ? 'text-slate-400 line-through' : 'text-slate-700 group-hover:text-blue-600'}`}>{task.title}</span>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-3">
+                      <div className="flex items-center gap-4 shrink-0 mt-3 sm:mt-0">
+                        {/* İncele Butonu */}
+                        <button
+                          onClick={() => {
+                            setInspectTask(task);
+                            setIsInspectOpen(true);
+                          }}
+                          className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors border border-slate-200"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                          İncele
+                        </button>
                         {task.fileUrl && (
                           <a 
                             href={`http://localhost:5000${task.fileUrl}`} 
@@ -296,6 +348,27 @@ export default function StudentDashboard() {
 
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <TaskCompletionModal
+        isOpen={isModalOpen}
+        taskTitle={selectedTask?.title}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedTask(null);
+        }}
+        onConfirm={handleModalConfirm}
+      />
+
+      {/* Inspect Modal */}
+      <TaskInspectModal 
+        isOpen={isInspectOpen}
+        onClose={() => {
+          setIsInspectOpen(false);
+          setInspectTask(null);
+        }}
+        task={inspectTask}
+      />
     </>
   );
 }

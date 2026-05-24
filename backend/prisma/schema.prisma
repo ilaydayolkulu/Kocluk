@@ -38,6 +38,8 @@ model Assignment {
   status    AssignmentStatus @default(PENDING)
   dueDate   DateTime?
   fileUrl   String?
+  submittedFileUrl String?
+  studentNote      String?   @db.Text
   
   teacherId Int
   teacher   User             @relation("TeacherAssignments", fields: [teacherId], references: [id])

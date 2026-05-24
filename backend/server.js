@@ -98,7 +98,10 @@ app.get('/api/assignments/student/:studentId', authenticateToken, async (req, re
 
     const assignments = await prisma.assignment.findMany({
       where: { studentId: parseInt(studentId) },
-      orderBy: { dueDate: 'asc' }
+      orderBy: { dueDate: 'asc' },
+      include: {
+        teacher: { select: { name: true } }
+      }
     });
     res.json(assignments);
   } catch (error) {
@@ -226,6 +229,10 @@ app.put('/api/assignments/:id/status', authenticateToken, upload.single('file'),
     const existing = await prisma.assignment.findUnique({ where: { id: parseInt(id) } });
     if (!existing) return res.status(404).json({ error: 'Ödev bulunamadı.' });
 
+    if (existing.status === 'COMPLETED') {
+      return res.status(403).json({ error: 'Bu görev zaten tamamlanmış ve kilitlenmiştir, tekrar değiştirilemez.' });
+    }
+
     if (req.user.role === 'STUDENT' && existing.studentId !== req.user.id) {
        return res.status(403).json({ error: 'Sadece kendi ödevinizin durumunu güncelleyebilirsiniz.' });
     }
@@ -240,7 +247,7 @@ app.put('/api/assignments/:id/status', authenticateToken, upload.single('file'),
       data: { 
         status,
         submittedFileUrl,
-        studentNote: studentNote || existing.studentNote
+        studentNote: studentNote !== undefined ? studentNote : existing.studentNote
       }
     });
 

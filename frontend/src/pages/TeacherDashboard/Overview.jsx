@@ -326,7 +326,30 @@ export default function TeacherDashboardHome() {
                                 Öğrenci: {task.student?.name || 'Bilinmeyen'}
                               </div>
                               <p className="text-sm text-slate-500 line-clamp-2 mt-1">{task.content}</p>
-                              <div className="flex items-center gap-4 mt-4 text-xs font-medium text-slate-500">
+                              
+                              {task.status === 'COMPLETED' && (task.studentNote || task.submittedFileUrl) && (
+                                <div className="mt-4 flex flex-col items-start gap-3">
+                                  {task.studentNote && (
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-start gap-2.5 w-full max-w-2xl">
+                                      <svg className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                      <p className="text-sm text-slate-600 italic">"{task.studentNote}"</p>
+                                    </div>
+                                  )}
+                                  {task.submittedFileUrl && (
+                                    <a 
+                                      href={`http://localhost:5000${task.submittedFileUrl}`} 
+                                      target="_blank" 
+                                      rel="noreferrer"
+                                      className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 border border-purple-200 transition-colors w-fit"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                      Öğrenci Çözümünü Gör
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap items-center gap-4 mt-4 text-xs font-medium text-slate-500">
                                 <div className="flex items-center gap-1.5">
                                   <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                   Son Teslim: <span className="text-slate-700">{task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Belirtilmedi'}</span>
@@ -389,7 +412,30 @@ export default function TeacherDashboardHome() {
                                 </span>
                               </div>
                               <p className="text-sm text-slate-500 line-clamp-2 mt-2">{task.content}</p>
-                              <div className="flex items-center gap-4 mt-4 text-xs font-medium text-slate-500">
+                              
+                              {task.status === 'COMPLETED' && (task.studentNote || task.submittedFileUrl) && (
+                                <div className="mt-4 flex flex-col items-start gap-3">
+                                  {task.studentNote && (
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-start gap-2.5 w-full max-w-2xl">
+                                      <svg className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                      <p className="text-sm text-slate-600 italic">"{task.studentNote}"</p>
+                                    </div>
+                                  )}
+                                  {task.submittedFileUrl && (
+                                    <a 
+                                      href={`http://localhost:5000${task.submittedFileUrl}`} 
+                                      target="_blank" 
+                                      rel="noreferrer"
+                                      className="bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 border border-purple-200 transition-colors w-fit"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                      Öğrenci Çözümünü Gör
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap items-center gap-4 mt-4 text-xs font-medium text-slate-500">
                                 <div className="flex items-center gap-1.5">
                                   <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                   Son Teslim: <span className="text-slate-700">{task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Belirtilmedi'}</span>
@@ -451,6 +497,17 @@ export default function TeacherDashboardHome() {
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
                   {selectedTask.content || 'Bu görev için bir detay açıklaması girilmemiş.'}
                 </div>
+                {selectedTask.studentNote && (
+                  <div className="mt-4 bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                    <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                      Öğrencinin Teslim Notu
+                    </h4>
+                    <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap italic">
+                      "{selectedTask.studentNote}"
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div className="grid grid-cols-2 gap-4 pt-2">
@@ -475,7 +532,20 @@ export default function TeacherDashboardHome() {
                         className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition border border-blue-200"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                        Ekli Dosya
+                        Öğretmen Eki
+                      </a>
+                    </div>
+                  )}
+                  {selectedTask.status === 'COMPLETED' && selectedTask.submittedFileUrl && (
+                    <div className="mt-3">
+                      <a 
+                        href={`http://localhost:5000${selectedTask.submittedFileUrl}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 transition border border-purple-200"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Öğrenci Eki
                       </a>
                     </div>
                   )}

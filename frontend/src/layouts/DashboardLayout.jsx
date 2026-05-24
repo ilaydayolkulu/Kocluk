@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
+import LogoutModal from "../components/LogoutModal";
 
 export default function DashboardLayout() {
   const location = useLocation();
   const pathname = location.pathname;
   const navigate = useNavigate();
+
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -53,7 +56,7 @@ export default function DashboardLayout() {
           </Link>
 
           {/* Çıkış Yap */}
-          <button onClick={handleLogout} className="p-2.5 rounded-xl cursor-pointer hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition" title="Güvenli Çıkış">
+          <button onClick={() => setIsLogoutModalOpen(true)} className="p-2.5 rounded-xl cursor-pointer hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition" title="Güvenli Çıkış">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
           </button>
         </div>
@@ -89,6 +92,12 @@ export default function DashboardLayout() {
         </div>
 
       </main>
+
+      <LogoutModal 
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   );
 }
