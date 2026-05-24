@@ -64,16 +64,15 @@ export default function StudentDashboard() {
             status: displayStatus,
             checked: task.status === 'COMPLETED',
             dueDate: task.dueDate,
-            fileUrl: task.fileUrl
+            fileUrl: task.fileUrl,
+            teacher: task.teacher
           };
         });
         
         const upcomingTasks = processedTasks
-          .filter(task => task.status !== "Gecikti" && !!task.dueDate)
-          .sort((a, b) => {
-            return new Date(a.dueDate) - new Date(b.dueDate);
-          })
-          .slice(0, 5);
+          .filter(task => !task.checked && !!task.dueDate)
+          .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+          .slice(0, 4);
 
         setTasks(upcomingTasks);
       }
@@ -224,58 +223,48 @@ export default function StudentDashboard() {
                 }
 
                 return (
-                  <div key={task.id} className="flex flex-col gap-1.5 group pb-1">
-                    <div className="flex items-center justify-between">
-                      <div 
-                        className={`flex items-center gap-3 select-none flex-1 ${
-                          task.checked ? "cursor-not-allowed opacity-90" : "cursor-pointer"
-                        }`}
-                        onClick={() => {
-                          if (task.checked) return;
-                          handleToggleTaskClick(task);
-                        }}
-                      >
-                        <div className={`w-5 h-5 shrink-0 rounded flex items-center justify-center border transition-colors ${task.checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
-                          {task.checked && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>}
-                        </div>
-                        <span className={`text-sm md:text-base font-medium transition-colors ${task.checked ? 'text-slate-400 line-through' : 'text-slate-700 group-hover:text-blue-600'}`}>{task.title}</span>
+                  <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between group py-2.5 px-3.5 border border-slate-100 rounded-2xl hover:border-blue-100 hover:shadow-sm transition-all bg-slate-50 hover:bg-white gap-3">
+                    {/* Sol Alan: Checkbox, Görev Başlığı */}
+                    <div 
+                      className="flex items-start sm:items-center gap-3 select-none flex-1 cursor-pointer"
+                      onClick={() => handleToggleTaskClick(task)}
+                    >
+                      {/* Checkbox */}
+                      <div className="w-5 h-5 shrink-0 rounded flex items-center justify-center border-2 border-slate-300 bg-white group-hover:border-blue-400 transition-colors mt-0.5 sm:mt-0"></div>
+                      
+                      {/* Başlık */}
+                      <div>
+                        <h3 className="text-sm md:text-base font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                          {task.title}
+                        </h3>
                       </div>
-                      <div className="flex items-center gap-4 shrink-0 mt-3 sm:mt-0">
-                        {/* İncele Butonu */}
+                    </div>
+
+                    {/* Sağ Alan: 2 Sütunlu Hizalama */}
+                    <div className="flex items-center justify-end gap-3 shrink-0 mt-3 sm:mt-0 w-full sm:w-auto">
+                      
+                      {/* 1. Sütun: Son Teslim Tarihi (w-28) */}
+                      <div className="w-28 flex items-center justify-start gap-1.5 text-[11px] font-semibold text-slate-500">
+                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span>{dateDisplay || 'Süresiz'}</span>
+                      </div>
+
+                      {/* 2. Sütun: İncele Butonu (w-24) */}
+                      <div className="w-24 flex justify-end">
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setInspectTask(task);
                             setIsInspectOpen(true);
                           }}
-                          className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors border border-slate-200"
+                          className="bg-white text-slate-600 hover:bg-slate-50 px-2.5 py-1.5 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors border border-slate-200 shadow-sm w-full"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                          <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                           İncele
                         </button>
-                        {task.fileUrl && (
-                          <a 
-                            href={`http://localhost:5000${task.fileUrl}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-xs px-3 py-1 rounded-full font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition flex items-center gap-1.5 border border-blue-200"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                            Eki İndir
-                          </a>
-                        )}
-                        <span className={`text-xs px-3 py-1 rounded-full font-medium ${task.checked ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
-                          {task.status}
-                        </span>
                       </div>
+
                     </div>
-                    {/* Alt Tarih Satırı */}
-                    {dateDisplay && !task.checked && (
-                      <div className="pl-8 flex items-center gap-1.5 text-xs text-slate-400">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        <span>Son Gün: {dateDisplay}</span>
-                      </div>
-                    )}
                   </div>
                 );
               })
