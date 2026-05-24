@@ -23,85 +23,98 @@ async function main() {
     data: { email: 'zeynep.kaya@egitimkocu.com', password: hashedPassword, name: 'Zeynep Kaya', role: 'TEACHER' },
   });
 
-  const studentMert = await prisma.user.create({
-    data: { email: 'mert.demir@gmail.com', password: hashedPassword, name: 'Mert Demir', role: 'STUDENT' },
-  });
+  const studentData = [
+    { name: 'Ahmet Yılmaz', email: 'ahmet.yilmaz@gmail.com', dept: 'SAY' },
+    { name: 'Ayşe Kaya', email: 'ayse.kaya@gmail.com', dept: 'SAY' },
+    { name: 'Mehmet Demir', email: 'mehmet.demir@gmail.com', dept: 'SAY' },
+    { name: 'Fatma Çelik', email: 'fatma.celik@gmail.com', dept: 'SAY' },
+    { name: 'Mustafa Şahin', email: 'mustafa.sahin@gmail.com', dept: 'SAY' },
 
-  const studentSelin = await prisma.user.create({
-    data: { email: 'selin.cetin@gmail.com', password: hashedPassword, name: 'Selin Çetin', role: 'STUDENT' },
-  });
+    { name: 'Zeynep Yıldız', email: 'zeynep.yildiz@gmail.com', dept: 'EA' },
+    { name: 'Ali Öztürk', email: 'ali.ozturk@gmail.com', dept: 'EA' },
+    { name: 'Elif Aydın', email: 'elif.aydin@gmail.com', dept: 'EA' },
+    { name: 'Hüseyin Özdemir', email: 'huseyin.ozdemir@gmail.com', dept: 'EA' },
+    { name: 'Esra Arslan', email: 'esra.arslan@gmail.com', dept: 'EA' },
 
-  const studentBurak = await prisma.user.create({
-    data: { email: 'burak.ozturk@hotmaıl.com', password: hashedPassword, name: 'Burak Öztürk', role: 'STUDENT' },
-  });
+    { name: 'Hasan Doğan', email: 'hasan.dogan@gmail.com', dept: 'DİL' },
+    { name: 'Merve Kılıç', email: 'merve.kilic@gmail.com', dept: 'DİL' },
+    { name: 'İbrahim Aslan', email: 'ibrahim.aslan@gmail.com', dept: 'DİL' },
+    { name: 'Hatice Çetin', email: 'hatice.cetin@gmail.com', dept: 'DİL' },
+    { name: 'Emre Bozkurt', email: 'emre.bozkurt@gmail.com', dept: 'DİL' },
 
-  // Mert Demir (Sayısal)
-  await prisma.practiceExam.create({
-    data: { examName: 'Eylül TYT Denemesi', examType: 'TYT', totalNet: 87.0, tytTurkish: 32.5, tytMath: 28.0, tytSocial: 14.0, tytScience: 12.5, studentId: studentMert.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Ekim TYT Denemesi', examType: 'TYT', totalNet: 92.5, tytTurkish: 35.0, tytMath: 30.0, tytSocial: 13.5, tytScience: 14.0, studentId: studentMert.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Ekim AYT (Sayısal)', examType: 'AYT', totalNet: 55.5, aytMath: 31.0, aytScience: 24.5, studentId: studentMert.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Kasım AYT (Sayısal)', examType: 'AYT', totalNet: 62.0, aytMath: 33.5, aytScience: 28.5, studentId: studentMert.id },
-  });
+    { name: 'Büşra Koç', email: 'busra.koc@gmail.com', dept: 'SÖZ' },
+    { name: 'Yusuf Aktaş', email: 'yusuf.aktas@gmail.com', dept: 'SÖZ' },
+    { name: 'Meryem Tekin', email: 'meryem.tekin@gmail.com', dept: 'SÖZ' },
+    { name: 'Murat Bulut', email: 'murat.bulut@gmail.com', dept: 'SÖZ' },
+    { name: 'Gül Erdoğan', email: 'gul.erdogan@gmail.com', dept: 'SÖZ' }
+  ];
 
-  // Selin Çetin (Eşit Ağırlık)
-  await prisma.practiceExam.create({
-    data: { examName: 'Eylül TYT Denemesi', examType: 'TYT', totalNet: 75.25, tytTurkish: 33.0, tytMath: 18.25, tytSocial: 16.0, tytScience: 8.0, studentId: studentSelin.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Ekim TYT Denemesi', examType: 'TYT', totalNet: 79.5, tytTurkish: 35.5, tytMath: 20.0, tytSocial: 15.0, tytScience: 9.0, studentId: studentSelin.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Ekim AYT (Eşit Ağırlık)', examType: 'AYT', totalNet: 48.0, aytMath: 20.0, aytEdSos1: 28.0, studentId: studentSelin.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Kasım AYT (Eşit Ağırlık)', examType: 'AYT', totalNet: 54.5, aytMath: 24.5, aytEdSos1: 30.0, studentId: studentSelin.id },
-  });
+  const createdStudents = [];
+  for (const sd of studentData) {
+    const student = await prisma.user.create({
+      data: {
+        email: sd.email,
+        password: hashedPassword,
+        name: sd.name,
+        role: 'STUDENT',
+        department: sd.dept
+      }
+    });
+    createdStudents.push(student);
+  }
 
-  // Burak Öztürk (Sözel)
-  await prisma.practiceExam.create({
-    data: { examName: 'Eylül TYT Denemesi', examType: 'TYT', totalNet: 65.5, tytTurkish: 34.0, tytMath: 8.5, tytSocial: 18.0, tytScience: 5.0, studentId: studentBurak.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Ekim TYT Denemesi', examType: 'TYT', totalNet: 70.0, tytTurkish: 36.5, tytMath: 10.0, tytSocial: 17.5, tytScience: 6.0, studentId: studentBurak.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Ekim AYT (Sözel)', examType: 'AYT', totalNet: 62.5, aytEdSos1: 31.0, aytSocial2: 31.5, studentId: studentBurak.id },
-  });
-  await prisma.practiceExam.create({
-    data: { examName: 'Kasım AYT (Sözel)', examType: 'AYT', totalNet: 68.0, aytEdSos1: 34.0, aytSocial2: 34.0, studentId: studentBurak.id },
-  });
+  // Create assignments and exams for each student so dashboard is not empty
+  for (const student of createdStudents) {
+    const teacher = Math.random() > 0.5 ? teacherCan : teacherZeynep;
+    
+    // Assignment 1 (COMPLETED)
+    await prisma.assignment.create({
+      data: { 
+        title: `${student.department} Konu Tekrarı`, 
+        content: `${student.department} alanındaki eksik konuları tekrar et.`, 
+        status: 'COMPLETED', 
+        dueDate: new Date(), 
+        teacherId: teacher.id, 
+        studentId: student.id,
+        studentNote: 'Sorunsuz tamamlandı.',
+      }
+    });
 
-  // Assignments for Mert (Can Yılmaz assigns)
-  await prisma.assignment.create({
-    data: { title: 'AYT Matematik İntegral', content: 'İntegral fasikülünden ilk 3 test çözülecek.', status: 'COMPLETED', dueDate: new Date(), teacherId: teacherCan.id, studentId: studentMert.id }
-  });
-  await prisma.assignment.create({
-    data: { title: 'AYT Fizik Çembersel Hareket', content: 'Çembersel hareket tekrarı ve 50 soru.', status: 'PENDING', dueDate: new Date(new Date().setDate(new Date().getDate() + 2)), teacherId: teacherCan.id, studentId: studentMert.id }
-  });
+    // Assignment 2 (PENDING)
+    await prisma.assignment.create({
+      data: { 
+        title: 'Haftalık Deneme Çözümü', 
+        content: 'Bu haftaki Türkiye geneli denemesini çöz ve netlerini sisteme gir.', 
+        status: 'PENDING', 
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 3)), 
+        teacherId: teacher.id, 
+        studentId: student.id 
+      }
+    });
 
-  // Assignments for Selin (Zeynep Kaya assigns)
-  await prisma.assignment.create({
-    data: { title: 'AYT Edebiyat Cumhuriyet Dönemi', content: 'Cumhuriyet dönemi yazarları tablosu ezberlenecek.', status: 'COMPLETED', dueDate: new Date(), teacherId: teacherZeynep.id, studentId: studentSelin.id }
-  });
-  await prisma.assignment.create({
-    data: { title: 'AYT Matematik Limit', content: 'Limit test 4 ve 5 bitecek.', status: 'PENDING', dueDate: new Date(new Date().setDate(new Date().getDate() + 1)), teacherId: teacherZeynep.id, studentId: studentSelin.id }
-  });
+    // Practice Exam
+    await prisma.practiceExam.create({
+      data: { 
+        examName: 'Eylül TYT Denemesi', 
+        examType: 'TYT', 
+        totalNet: Math.floor(Math.random() * 50) + 40, 
+        tytTurkish: 25, 
+        tytMath: 15, 
+        tytSocial: 10, 
+        tytScience: 5, 
+        studentId: student.id 
+      },
+    });
+  }
 
-  // Assignments for Burak (Can Yılmaz assigns)
-  await prisma.assignment.create({
-    data: { title: 'AYT Tarih Çağdaş Türk ve Dünya Tarihi', content: 'Soğuk savaş dönemi özet çıkarılacak.', status: 'COMPLETED', dueDate: new Date(), teacherId: teacherCan.id, studentId: studentBurak.id }
-  });
-  await prisma.assignment.create({
-    data: { title: 'TYT Türkçe Paragraf', content: 'Günde 30 paragraf sorusu rutini.', status: 'PENDING', dueDate: new Date(new Date().setDate(new Date().getDate() + 3)), teacherId: teacherCan.id, studentId: studentBurak.id }
-  });
-
-  console.log('Seeding completed successfully with realistic data!');
+  console.log('Seed başarıyla tamamlandı: 20 Öğrenci oluşturuldu.');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); }).finally(async () => { await prisma.$disconnect(); });
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

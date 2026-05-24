@@ -149,14 +149,14 @@ export default function AssignTasksPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Alan Filtresi</label>
               <div className="flex flex-wrap gap-2">
-                {['Hepsi', 'SAY', 'EA', 'SOZ', 'DIL'].map(dept => (
+                {['Hepsi', 'SAY', 'EA', 'SÖZ', 'DİL'].map(dept => (
                   <button
                     key={dept}
                     type="button"
                     onClick={() => setFilterDept(dept)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${filterDept === dept ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                   >
-                    {dept === 'SAY' ? 'SAY' : dept === 'EA' ? 'EA' : dept === 'SOZ' ? 'SÖZ' : dept === 'DIL' ? 'DİL' : 'Hepsi'}
+                    {dept}
                   </button>
                 ))}
               </div>

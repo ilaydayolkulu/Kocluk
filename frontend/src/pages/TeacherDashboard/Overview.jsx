@@ -11,7 +11,7 @@ export default function TeacherDashboardHome() {
   const [loading, setLoading] = useState(true);
   
   // Yeni State Mekanizması
-  const [selectedDepartment, setSelectedDepartment] = useState('ALL');
+  const [selectedDepartment, setSelectedDepartment] = useState('TÜMÜ');
   const [activeStudentId, setActiveStudentId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyAssignedStudents, setShowOnlyAssignedStudents] = useState(false);
@@ -51,7 +51,7 @@ export default function TeacherDashboardHome() {
   }, []);
 
   const filteredStudents = allStudents.filter(s => {
-    const matchDept = selectedDepartment === 'ALL' || s.department === selectedDepartment;
+    const matchDept = selectedDepartment === 'TÜMÜ' || s.department === selectedDepartment;
     const matchName = s.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchDept && matchName;
   });
@@ -85,13 +85,13 @@ export default function TeacherDashboardHome() {
     switch(dept) {
       case 'SAY': return 'Sayısal (SAY)';
       case 'EA': return 'Eşit Ağırlık (EA)';
-      case 'SOZ': return 'Sözel (SÖZ)';
-      case 'DIL': return 'Yabancı Dil (DİL)';
+      case 'SÖZ': return 'Sözel (SÖZ)';
+      case 'DİL': return 'Yabancı Dil (DİL)';
       default: return 'Tüm alanlarda';
     }
   };
 
-  const dynamicCounterText = `${getDeptName(selectedDepartment)} ${selectedDepartment === 'ALL' ? 'toplam' : 'alanında toplam'} ${activeStudentsInDeptCount} öğrenciye aktif görev tanımlanmış.`;
+  const dynamicCounterText = `${getDeptName(selectedDepartment)} ${selectedDepartment === 'TÜMÜ' ? 'toplam' : 'alanında toplam'} ${activeStudentsInDeptCount} öğrenciye aktif görev tanımlanmış.`;
 
   // Yeni Görünüm Filtreleri
   const displayedStudents = showOnlyAssignedStudents 
@@ -100,7 +100,7 @@ export default function TeacherDashboardHome() {
 
   const deptTasks = allTasks.filter(task => {
     const student = allStudents.find(s => s.id === task.studentId);
-    return student && (selectedDepartment === 'ALL' || student.department === selectedDepartment);
+    return student && (selectedDepartment === 'TÜMÜ' || student.department === selectedDepartment);
   }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const handleDeleteTask = async (taskId) => {
@@ -192,13 +192,13 @@ export default function TeacherDashboardHome() {
                 
                 {/* Alan Filtre Butonları */}
                 <div className="flex bg-white rounded-xl p-1 border border-slate-200 shadow-sm overflow-x-auto max-w-full">
-                  {['ALL', 'SAY', 'EA', 'SOZ', 'DIL'].map(dept => (
+                  {['TÜMÜ', 'SAY', 'EA', 'SÖZ', 'DİL'].map(dept => (
                     <button
                       key={dept}
                       onClick={() => setSelectedDepartment(dept)}
                       className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors shrink-0 ${selectedDepartment === dept ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
                     >
-                      {dept === 'ALL' ? 'HEPSİ' : dept === 'SOZ' ? 'SÖZ' : dept === 'DIL' ? 'DİL' : dept}
+                      {dept}
                     </button>
                   ))}
                 </div>
