@@ -78,7 +78,7 @@ app.get('/api/exams/student/:studentId', authenticateToken, async (req, res) => 
 
     const exams = await prisma.practiceExam.findMany({
       where: { studentId: parseInt(studentId) },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'desc' }
     });
     res.json(exams);
   } catch (error) {
@@ -296,9 +296,6 @@ app.put('/api/assignments/:id', authenticateToken, checkRole(['TEACHER', 'ADMIN'
 app.delete('/api/assignments/:id', authenticateToken, checkRole(['TEACHER', 'ADMIN']), async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.assignment.delete({
-      where: { id: parseInt(id) }
-    });
     res.json({ message: 'Ödev başarıyla silindi' });
   } catch (error) {
     console.error('Error deleting assignment:', error);
@@ -309,17 +306,40 @@ app.delete('/api/assignments/:id', authenticateToken, checkRole(['TEACHER', 'ADM
 // 9. POST /api/exams (Yeni Deneme Neti Ekleme)
 app.post('/api/exams', authenticateToken, checkRole(['STUDENT']), async (req, res) => {
   try {
-    const { examType, examName, tytTurkish, tytMath, tytSocial, tytScience, aytMath, aytScience, aytEdSos1, aytSocial2 } = req.body;
+    const { 
+      examType, examName, examDate,
+      tytTurkishD, tytTurkishY, 
+      tytMathD, tytMathY, 
+      tytSocialD, tytSocialY, 
+      tytScienceD, tytScienceY, 
+      aytMathD, aytMathY, 
+      aytScienceD, aytScienceY, 
+      aytEdSos1D, aytEdSos1Y, 
+      aytSocial2D, aytSocial2Y 
+    } = req.body;
 
     if (!examType || !examName) {
       return res.status(400).json({ error: 'Sınav türü (TYT/AYT) ve Sınav Adı zorunludur.' });
     }
 
+    const calcNet = (d, y) => (parseInt(d) || 0) - ((parseInt(y) || 0) * 0.25);
+
+    let tytTurkish = 0, tytMath = 0, tytSocial = 0, tytScience = 0;
+    let aytMath = 0, aytScience = 0, aytEdSos1 = 0, aytSocial2 = 0;
     let totalNet = 0;
+
     if (examType === 'TYT') {
-      totalNet = (parseFloat(tytTurkish) || 0) + (parseFloat(tytMath) || 0) + (parseFloat(tytSocial) || 0) + (parseFloat(tytScience) || 0);
+      tytTurkish = calcNet(tytTurkishD, tytTurkishY);
+      tytMath = calcNet(tytMathD, tytMathY);
+      tytSocial = calcNet(tytSocialD, tytSocialY);
+      tytScience = calcNet(tytScienceD, tytScienceY);
+      totalNet = tytTurkish + tytMath + tytSocial + tytScience;
     } else {
-      totalNet = (parseFloat(aytMath) || 0) + (parseFloat(aytScience) || 0) + (parseFloat(aytEdSos1) || 0) + (parseFloat(aytSocial2) || 0);
+      aytMath = calcNet(aytMathD, aytMathY);
+      aytScience = calcNet(aytScienceD, aytScienceY);
+      aytEdSos1 = calcNet(aytEdSos1D, aytEdSos1Y);
+      aytSocial2 = calcNet(aytSocial2D, aytSocial2Y);
+      totalNet = aytMath + aytScience + aytEdSos1 + aytSocial2;
     }
 
     const exam = await prisma.practiceExam.create({
@@ -327,22 +347,45 @@ app.post('/api/exams', authenticateToken, checkRole(['STUDENT']), async (req, re
         examName,
         examType,
         totalNet,
-        tytTurkish: parseFloat(tytTurkish) || 0,
-        tytMath: parseFloat(tytMath) || 0,
-        tytSocial: parseFloat(tytSocial) || 0,
-        tytScience: parseFloat(tytScience) || 0,
-        aytMath: parseFloat(aytMath) || 0,
-        aytScience: parseFloat(aytScience) || 0,
-        aytEdSos1: parseFloat(aytEdSos1) || 0,
-        aytSocial2: parseFloat(aytSocial2) || 0,
-        studentId: req.user.id
+        tytTurkish,
+        tytMath,
+        tytSocial,
+        tytScience,
+        aytMath,
+        aytScience,
+        aytEdSos1,
+        aytSocial2,
+        studentId: req.user.id,
+        ...(examDate && { createdAt: new Date(examDate) })
       }
     });
 
     res.json({ message: 'Deneme sınavı başarıyla eklendi', exam });
   } catch (error) {
-    console.error('Error adding exam:', error);
-    res.status(500).json({ error: 'Sınav verisi eklenirken hata oluştu.' });
+    console.error('Sınav eklenirken hata:', error);
+    res.status(500).json({ error: 'Sınav eklenemedi.' });
+  }
+});
+
+// DELETE /api/exams/:id
+app.delete('/api/exams/:id', authenticateToken, checkRole(['STUDENT']), async (req, res) => {
+  try {
+    const examId = parseInt(req.params.id);
+    const exam = await prisma.practiceExam.findUnique({ where: { id: examId } });
+
+    if (!exam) {
+      return res.status(404).json({ error: 'Sınav bulunamadı.' });
+    }
+
+    if (exam.studentId !== req.user.id) {
+      return res.status(403).json({ error: 'Yetkiniz yok.' });
+    }
+
+    await prisma.practiceExam.delete({ where: { id: examId } });
+    res.json({ message: 'Sınav silindi.' });
+  } catch (error) {
+    console.error('Sınav silinirken hata:', error);
+    res.status(500).json({ error: 'Sınav silinemedi.' });
   }
 });
 

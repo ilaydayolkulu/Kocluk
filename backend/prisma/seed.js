@@ -93,6 +93,9 @@ async function main() {
     });
 
     // Practice Exam
+    const hundredDaysAgo = new Date();
+    hundredDaysAgo.setDate(hundredDaysAgo.getDate() - 100);
+    
     await prisma.practiceExam.create({
       data: { 
         examName: 'Eylül TYT Denemesi', 
@@ -102,9 +105,70 @@ async function main() {
         tytMath: 15, 
         tytSocial: 10, 
         tytScience: 5, 
-        studentId: student.id 
+        studentId: student.id,
+        createdAt: hundredDaysAgo
       },
     });
+  }
+
+  // Mehmet Demir için 10 adet kronolojik deneme (Son 3 Ay)
+  const mehmet = createdStudents.find(s => s.email === 'mehmet.demir@gmail.com');
+  if (mehmet) {
+    const examsData = [];
+    for (let i = 0; i < 10; i++) {
+      // 90 gün öncesinden başlayarak günümüze doğru kronolojik sıralama
+      const daysAgo = 90 - (i * 9); 
+      const examDate = new Date();
+      examDate.setDate(examDate.getDate() - daysAgo);
+
+      // İlerleyen haftalarda yavaş yavaş artan netler
+      const tytTurkish = 20 + i; 
+      const tytMath = 10 + i; 
+      const tytSocial = 8 + Math.floor(i / 2); 
+      const tytScience = 5 + Math.floor(i / 3); 
+      const totalNet = tytTurkish + tytMath + tytSocial + tytScience;
+
+      examsData.push({
+        examName: `TYT Genel Deneme ${i + 1}`,
+        examType: 'TYT',
+        totalNet: totalNet,
+        tytTurkish: tytTurkish,
+        tytMath: tytMath,
+        tytSocial: tytSocial,
+        tytScience: tytScience,
+        studentId: mehmet.id,
+        createdAt: examDate
+      });
+
+      // AYT için aynı tarihin ertesi günü veya aynı günü
+      const aytDate = new Date(examDate);
+      aytDate.setHours(aytDate.getHours() + 2); // Birkaç saat sonra
+      
+      const aytMath = 10 + i * 2; // 10 -> 28
+      const aytScience = 5 + i * 2; // 5 -> 23
+      const aytEdSos1 = 15 + i; // 15 -> 24
+      const aytSocial2 = 12 + i; // 12 -> 21
+      
+      // Toplam net AYT için farklı bir hesaplamadır, rastgele genel bir toplam veriyoruz
+      const aytTotalNet = aytMath + aytScience + aytEdSos1 + aytSocial2;
+
+      examsData.push({
+        examName: `AYT Genel Deneme ${i + 1}`,
+        examType: 'AYT',
+        totalNet: aytTotalNet,
+        aytMath: aytMath,
+        aytScience: aytScience,
+        aytEdSos1: aytEdSos1,
+        aytSocial2: aytSocial2,
+        studentId: mehmet.id,
+        createdAt: aytDate
+      });
+    }
+    
+    await prisma.practiceExam.createMany({
+      data: examsData
+    });
+    console.log('Mehmet Demir için son 3 aya ait 10 adet TYT ve 10 adet AYT denemesi oluşturuldu.');
   }
 
   console.log('Seed başarıyla tamamlandı: 20 Öğrenci oluşturuldu.');
