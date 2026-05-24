@@ -121,7 +121,22 @@ export default function PlannedTasksPage() {
         fetchOptions.body = JSON.stringify({ status: newStatus });
       }
 
-      await fetch(`http://localhost:5000/api/assignments/${taskId}/status`, fetchOptions);
+      const response = await fetch(`http://localhost:5000/api/assignments/${taskId}/status`, fetchOptions);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.updatedAssignment) {
+          setTasks(prevTasks => prevTasks.map(task => {
+            if (task.id === taskId) {
+              return { 
+                ...task, 
+                studentNote: data.updatedAssignment.studentNote,
+                submittedFileUrl: data.updatedAssignment.submittedFileUrl
+              };
+            }
+            return task;
+          }));
+        }
+      }
     } catch (err) {
       console.error('Görev güncellenemedi:', err);
     }

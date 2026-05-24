@@ -12,7 +12,7 @@ export default function TaskInspectModal({ isOpen, onClose, task }) {
             <h3 className="text-xl font-bold text-slate-800 pr-4">{task.title}</h3>
             <div className="flex items-center gap-2 mt-1.5 text-sm text-slate-500 font-medium">
               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-              <span>{task.teacher?.name || "Öğretmen"}</span>
+              <span>{task.teacher?.name || task.student?.name || "Öğretmen"}</span>
             </div>
           </div>
           <button 
@@ -57,11 +57,11 @@ export default function TaskInspectModal({ isOpen, onClose, task }) {
           </div>
 
           {/* Öğrenci Teslim Bilgileri */}
-          {task.status === 'COMPLETED' && (
+          {(task.status === 'COMPLETED' || task.status === 'Tamamlandı') && (
             <div className="mt-8 pt-6 border-t border-slate-100">
               <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Senin Teslim Bilgilerin
+                Öğrenci Teslim Bilgileri
               </h4>
               
               <div className="space-y-4">
