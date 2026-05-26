@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 export default function AiCoachWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,6 +14,23 @@ export default function AiCoachWidget() {
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const widgetRef = useRef(null);
+
+  // Click outside to close (hide) without losing state
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (widgetRef.current && !widgetRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const studentName = user.name ? user.name.split(' ')[0] : 'Öğrenci';
@@ -146,6 +167,7 @@ export default function AiCoachWidget() {
 
       {/* Sağdan Açılan Panel */}
       <div 
+        ref={widgetRef}
         className={`fixed bottom-0 sm:bottom-6 right-0 sm:right-6 z-50 w-full sm:w-96 h-[85vh] sm:h-[600px] bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-transform duration-500 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full sm:translate-x-[120%]'}`}
       >
         {/* Panel Başlığı */}
@@ -245,7 +267,14 @@ export default function AiCoachWidget() {
                       <img src={msg.imageUrl} alt="Uploaded" className="max-w-full h-auto rounded-lg mb-2 object-cover border border-slate-700/50" />
                     )}
                     {msg.message && (
-                      <div className="whitespace-pre-wrap leading-relaxed" dangerouslySetInnerHTML={{ __html: msg.message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}></div>
+                      <div className="whitespace-pre-wrap leading-relaxed prose prose-invert max-w-none text-[13px] sm:text-sm">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkMath]} 
+                          rehypePlugins={[rehypeKatex]}
+                        >
+                          {msg.message}
+                        </ReactMarkdown>
+                      </div>
                     )}
                   </div>
                 </div>

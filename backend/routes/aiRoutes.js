@@ -8,8 +8,6 @@ const prisma = new PrismaClient();
 const { authenticateToken, checkRole } = require('../middleware/authMiddleware');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-console.log("Gemini API Key Yuklendi mi?:", process.env.GEMINI_API_KEY ? "EVET" : "HAYIR");
-
 // Gemini AI istemcisini baslat
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -142,7 +140,12 @@ router.post('/chat', authenticateToken, checkRole(['STUDENT']), upload.single('f
       }
     } else {
       // Temel System Prompt
-      let systemInstruction = "Sen Turkiye'deki YKS (TYT, AYT, YDT) sistemine son derece hakim, profesyonel ve moral verici bir AI Sinav Kocusun. Ogrenciye alan ayrimi yapmadan (Sayisal, Sozel, EA, Dil) rehberlik et. ";
+      let systemInstruction = `Sen Turkiye'deki YKS (TYT, AYT, YDT) sistemine son derece hakim, profesyonel ve moral verici bir AI Sinav Kocusun. Ogrenciye alan ayrimi yapmadan (Sayisal, Sozel, EA, Dil) rehberlik et.
+KESİN FORMAT KURALI: 
+- Tüm matematiksel ifadeleri, oranları, denklemleri, formülleri ve kesirleri KESİNLİKLE standart LaTeX formatında üret.
+- Satır içi (inline) ifadeleri tek dolar işareti arasında göster (Örn: $1/4$, $\\frac{1}{4}$ veya $2 \\div 2 = 1$).
+- Ayrı bir satırda büyük vurgulanması gereken formülleri çift dolar işareti arasında göster (Örn: $$ x = \\frac{-b \\pm \\sqrt{\\Delta}}{2a} $$).
+- Düz metin ile LaTeX kodlarını asla birbirine karıştırma, her sayısal veya sembolik matematiksel veri mutlaka $ veya $$ blokları içinde kalmalıdır.`;
 
       // Dinamik Prompt Ekleme
       if (actionType === 'solve_question') {

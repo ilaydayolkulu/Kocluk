@@ -175,7 +175,6 @@ app.get('/api/assignments/all', authenticateToken, checkRole(['TEACHER', 'ADMIN'
 app.post('/api/assignments', authenticateToken, checkRole(['TEACHER', 'ADMIN']), upload.single('file'), async (req, res) => {
   try {
     const { studentIds, title, description, dueDate } = req.body;
-    console.log("POST /api/assignments received body:", req.body);
     let fileUrl = null;
     
     if (req.file) {
