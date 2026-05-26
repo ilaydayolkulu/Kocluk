@@ -273,25 +273,103 @@ export default function StudentDashboard() {
         </div>
 
         {/* İlerleme Grafiği Kartı */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
-          <h2 className="text-lg font-bold text-slate-800 mb-2">Haftalık İlerleme</h2>
-          <div className="flex items-center gap-2 mb-6">
-            <div className="w-4 h-1 bg-blue-500 rounded-full"></div>
-            <span className="text-xs text-slate-500">Tamamlanması gereken ilerlemeyi planlar</span>
-          </div>
-          <div className="flex-1 min-h-[200px] -ml-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ color: '#1e293b', fontWeight: 600 }}
-                />
-                <Line type="monotone" dataKey="current" stroke="#3b82f6" strokeWidth={3} dot={false} />
-                <Line type="monotone" dataKey="planned" stroke="#93c5fd" strokeWidth={3} dot={false} strokeOpacity={0.5} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        {(() => {
+          // 1. Mantıksal Hesaplama Kısmı (React Logic)
+          const now = new Date();
+          
+          // Örnek Görev Verisi (O Haftanın Görevleri)
+          const weeklyTasks = [
+            { id: 1, title: 'Matematik', isCompleted: true, deadline: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2) },
+            { id: 2, title: 'Fizik', isCompleted: false, deadline: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1) },
+            { id: 3, title: 'Türkçe', isCompleted: true, deadline: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2) },
+            { id: 4, title: 'Kimya', isCompleted: false, deadline: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) }, // Gelecek (Kaçırılmadı)
+            { id: 5, title: 'Biyoloji', isCompleted: true, deadline: new Date(now.getFullYear(), now.getMonth(), now.getDate()) },
+            { id: 6, title: 'Tarih', isCompleted: false, deadline: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3) },
+            { id: 7, title: 'Coğrafya', isCompleted: true, deadline: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3) }
+          ];
+
+          // Toplam İstatistikler
+          const totalTasks = weeklyTasks.length;
+          const completedTasks = weeklyTasks.filter(t => t.isCompleted).length;
+          const missedTasks = weeklyTasks.filter(t => !t.isCompleted && new Date(t.deadline) < now).length;
+
+          // Gün Bazlı Hesaplama
+          const daysOfWeek = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+          const dailyData = daysOfWeek.map((dayName, index) => {
+            // Task tarihlerini haftanın gününe eşleştirme (Gerçek projede daha hassas tarih eşleşmesi yapılır)
+            const dayTasks = weeklyTasks.filter(t => {
+               const dayIndex = t.deadline.getDay() === 0 ? 6 : t.deadline.getDay() - 1;
+               return dayIndex === index;
+            });
+            return {
+              day: dayName,
+              completed: dayTasks.filter(t => t.isCompleted).length,
+              missed: dayTasks.filter(t => !t.isCompleted && new Date(t.deadline) < now).length
+            };
+          });
+
+          return (
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Haftalık İlerleme</h2>
+              
+              {/* 2. Özet Bilgi Etiketleri (3'lü Grup) */}
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                  Atanan Toplam Görev: {totalTasks}
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                  Tamamlanan: {completedTasks}
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-700 rounded-lg text-xs font-semibold">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                  Teslim Tarihi Geçen (Kaçırılan): {missedTasks}
+                </div>
+              </div>
+              
+              {/* 3. Gün Gün Performans Grafiği */}
+              <div className="flex-1 flex items-end justify-between gap-2 mt-auto pt-2 mb-6">
+                {dailyData.map((item, idx) => {
+                  const MAX_TASKS = 4; // Sabit yükseklik skalası
+                  const completedHeight = Math.max((item.completed / MAX_TASKS) * 100, 0);
+                  const missedHeight = Math.max((item.missed / MAX_TASKS) * 100, 0);
+                  
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-3 w-full group">
+                      <div className="w-full flex justify-center items-end gap-1 h-[120px] rounded-xl bg-slate-50/50 p-1 group-hover:bg-slate-50 transition-colors">
+                        {/* Yeşil Bar (Tamamlanan) */}
+                        <div 
+                          className="w-full max-w-[12px] bg-emerald-400 rounded-t-md rounded-b-sm transition-all duration-500 ease-out relative" 
+                          style={{ height: `${completedHeight}%`, minHeight: item.completed > 0 ? '4px' : '0' }}
+                        >
+                          {item.completed > 0 && (
+                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm z-10 pointer-events-none">
+                              {item.completed}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Kırmızı Bar (Kaçırılan) */}
+                        <div 
+                          className="w-full max-w-[12px] bg-rose-400 rounded-t-md rounded-b-sm transition-all duration-500 ease-out relative" 
+                          style={{ height: `${missedHeight}%`, minHeight: item.missed > 0 ? '4px' : '0' }}
+                        >
+                          {item.missed > 0 && (
+                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm z-10 pointer-events-none">
+                              {item.missed}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-slate-400">{item.day}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
 
