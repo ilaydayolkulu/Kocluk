@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import LogoutModal from "../components/LogoutModal";
+import AiCoachWidget from "../components/AiCoachWidget";
 
 export default function DashboardLayout() {
   const location = useLocation();
@@ -279,6 +280,9 @@ export default function DashboardLayout() {
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleLogout}
       />
+      
+      {/* Global Yüzen AI Asistan */}
+      {user.role === 'STUDENT' && <AiCoachWidget />}
     </div>
   );
 }

@@ -94,24 +94,26 @@ enum ExamType {
 
 // Yapay zeka asistanı ile yapılan sohbet oturumlarını (oturum bazlı) gruplayan model.
 model ChatSession {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  Message[]
+  id        String        @id @default(uuid())
+  studentId Int
+  student   User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title     String        @default("Yeni Sohbet")
+  messages  ChatMessage[]
   
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 // ChatSession içerisindeki tekil yapay zeka ve kullanıcı sohbet mesajlarını tutan model.
-model Message {
-  id            Int         @id @default(autoincrement())
-  sessionId     Int
-  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  role          String      // e.g., 'user', 'model'
-  content       String      @db.Text
+model ChatMessage {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender    String      // "student" veya "ai"
+  message   String      @db.Text
+  imageUrl  String?     @db.Text
   
-  createdAt     DateTime    @default(now())
+  createdAt DateTime    @default(now())
 }
 
 // Sistemdeki kullanıcıların (özellikle öğrencilerin) bildirimlerini tutan model.

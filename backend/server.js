@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
@@ -6,7 +7,6 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const { authenticateToken, checkRole, JWT_SECRET } = require('./middleware/authMiddleware');
-require('dotenv').config();
 
 const app = express();
 const prisma = new PrismaClient();
@@ -27,6 +27,10 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage: storage });
+
+// AI Routes importing
+const aiRoutes = require('./routes/aiRoutes');
+app.use('/api/ai', aiRoutes);
 
 // 1. POST /api/auth/login
 app.post('/api/auth/login', async (req, res) => {
