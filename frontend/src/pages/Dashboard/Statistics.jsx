@@ -390,9 +390,15 @@ export default function StatisticsPage() {
   const parsedTrendData = [...exams].reverse().map(exam => {
     const d = new Date(exam.createdAt);
     const dateStr = d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
-    return { date: dateStr, examType: exam.examType, net: exam.totalNet };
+    return { date: dateStr, examType: exam.examType, net: exam.totalNet, rawDate: d };
   });
-  const activeTrendData = parsedTrendData.filter(d => d.examType === examTab);
+
+  const activeTrendData = parsedTrendData.filter(d => {
+    const matchExam = d.examType === examTab;
+    const isCurrentMonth = d.rawDate.getMonth() === new Date().getMonth() && d.rawDate.getFullYear() === new Date().getFullYear();
+    const matchTime = timeFilter === "all" || (timeFilter === "month" && isCurrentMonth);
+    return matchExam && matchTime;
+  });
 
   // Helper to estimate D and Y from Net
   const getDYFromNet = (net) => {
@@ -612,7 +618,6 @@ export default function StatisticsPage() {
                     <div className="flex bg-slate-100 p-1.5 rounded-xl shrink-0">
                       <button onClick={() => setTimeFilter("all")} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Tüm Dönem</button>
                       <button onClick={() => setTimeFilter("month")} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Aylık</button>
-                      <button onClick={() => setTimeFilter("week")} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${timeFilter === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Haftalık</button>
                     </div>
                   </div>
                 </div>
