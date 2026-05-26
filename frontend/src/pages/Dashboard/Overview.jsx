@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
 import TaskCompletionModal from "../../components/TaskCompletionModal";
 import TaskInspectModal from "../../components/TaskInspectModal";
+import FocusStation from "../../components/FocusStation";
 
 export default function StudentDashboard() {
   const [tasks, setTasks] = useState([]);
@@ -175,14 +176,7 @@ export default function StudentDashboard() {
     }
   };
 
-  const totalQuestions = 120;
-  const tytTurkish = latestExam?.tytTurkish || 0;
-  const tytMath = latestExam?.tytMath || 0;
-  const tytScience = latestExam?.tytScience || 0;
-  const tytSocial = latestExam?.tytSocial || 0;
-  
-  const totalNet = tytTurkish + tytMath + tytScience + tytSocial;
-  const percentage = Math.round((totalNet / totalQuestions) * 100) || 0;
+
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const firstName = user.name ? user.name.split(' ')[0] : 'Öğrenci';
@@ -373,63 +367,8 @@ export default function StudentDashboard() {
 
       </div>
 
-      {/* Son Deneme Sınavı Sonuçları */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-slate-800">Son Deneme Sınavı Sonuçları</h2>
-        </div>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-          
-          {/* İstatistikler Grid */}
-          <div className="grid grid-cols-2 gap-x-8 gap-y-6 w-full md:w-2/3">
-            <div>
-              <p className="text-sm text-slate-500 mb-1">Türkçe:</p>
-              <p className="text-3xl font-bold text-slate-800">{latestExam ? `${tytTurkish}/40` : '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500 mb-1">Matematik:</p>
-              <p className="text-3xl font-bold text-slate-800">{latestExam ? `${tytMath}/40` : '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500 mb-1">Fen Bilimleri:</p>
-              <p className="text-3xl font-bold text-slate-800">{latestExam ? `${tytScience}/20` : '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500 mb-1">Sosyal Bilimler:</p>
-              <p className="text-3xl font-bold text-slate-800">{latestExam ? `${tytSocial}/20` : '-'}</p>
-            </div>
-          </div>
-
-          {/* Dairesel Progress */}
-          <div className="flex flex-col items-center justify-center shrink-0 mt-4 md:mt-0">
-            <div className="relative w-32 h-32">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-blue-100"
-                  strokeWidth="4"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className="text-blue-500"
-                  strokeDasharray={`${percentage}, 100`}
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-3xl font-bold text-slate-800">{percentage}%</span>
-              </div>
-            </div>
-            <p className="text-sm text-slate-500 mt-3 font-medium">Başarı Yüzdesi</p>
-          </div>
-
-        </div>
-      </div>
+      {/* Focus Station */}
+      <FocusStation studentId={user.id} token={localStorage.getItem('token')} />
 
       {/* Confirmation Modal */}
       <TaskCompletionModal

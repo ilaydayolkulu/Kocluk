@@ -23,6 +23,7 @@ model User {
   practiceExams      PracticeExam[]
   chatSessions       ChatSession[]
   notifications      Notification[]
+  focusSessions      FocusSession[]
 }
 
 enum Role {
@@ -126,5 +127,14 @@ model Notification {
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
+  createdAt DateTime @default(now())
+}
+
+// Öğrencilerin tamamladığı odaklanma (Pomodoro/Sınav) seanslarını tutan model.
+model FocusSession {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  duration  Int      // Odaklanma süresi (dakika)
   createdAt DateTime @default(now())
 }

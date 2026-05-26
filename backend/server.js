@@ -404,6 +404,63 @@ app.get('/api/ping', (req, res) => {
 });
 
 // ==========================================
+// FOCUS SESSIONS
+// ==========================================
+
+// GET /api/focus-sessions/today/:studentId
+app.get('/api/focus-sessions/today/:studentId', authenticateToken, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    
+    if (req.user.id !== studentId && req.user.role === 'STUDENT') {
+      return res.status(403).json({ error: 'Yetkiniz yok.' });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const sessions = await prisma.focusSession.findMany({
+      where: {
+        studentId,
+        createdAt: {
+          gte: today
+        }
+      }
+    });
+
+    const totalMinutes = sessions.reduce((sum, session) => sum + session.duration, 0);
+    res.json({ totalMinutes });
+  } catch (error) {
+    console.error('Focus session getirme hatası:', error);
+    res.status(500).json({ error: 'Veriler alınamadı.' });
+  }
+});
+
+// POST /api/focus-sessions
+app.post('/api/focus-sessions', authenticateToken, checkRole(['STUDENT']), async (req, res) => {
+  try {
+    const { duration } = req.body;
+    const studentId = req.user.id;
+
+    if (!duration) {
+      return res.status(400).json({ error: 'Süre (duration) zorunludur.' });
+    }
+
+    const newSession = await prisma.focusSession.create({
+      data: {
+        studentId,
+        duration: parseInt(duration)
+      }
+    });
+
+    res.status(201).json(newSession);
+  } catch (error) {
+    console.error('Focus session kaydetme hatası:', error);
+    res.status(500).json({ error: 'Oturum kaydedilemedi.' });
+  }
+});
+
+// ==========================================
 // NOTIFICATIONS
 // ==========================================
 
